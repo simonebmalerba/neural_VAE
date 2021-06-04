@@ -86,6 +86,17 @@ class GaussianDecoder(torch.nn.Module):
         mu = -0.5*eta1/eta2
         sigma =  - 0.5/eta2
         return mu, sigma
+    
+    
+class GaussianDecoder_1(torch.nn.Module):
+    def __init__(self,mu0,sigma0,q0):
+        super().__init__()
+        self.q  = torch.nn.Parameter(F.softmax(q0))
+        self.mu = torch.nn.Parameter(mu0.transpose(0,1)) #transpose(0,1) a row becomes a colummn
+        self.sigma = torch.nn.Parameter(sigma0.transpose(0,1))
+    def forward(self,r):
+        return self.mu, self.sigma
+
 
 
 # %%
