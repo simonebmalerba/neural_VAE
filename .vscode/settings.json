@@ -1,4 +1,8 @@
 {
     "python.pythonPath": "/home/simone/anaconda3/envs/VAE_efficient_coding/bin/python",
-    "jupyter.jupyterServerType": "local"
+    "jupyter.jupyterServerType": "local",
+    "python.formatting.blackArgs": [
+        "--line-length",
+        "80"
+    ]
 }

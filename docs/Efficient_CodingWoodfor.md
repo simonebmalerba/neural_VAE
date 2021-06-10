@@ -31,7 +31,7 @@ Todo:
 
 * parametrize $p_\theta(j|x) = \frac{\exp(a_jx^2+b_jx +c_j)}{\tilde{Z_x}}$ ...similar results?
 
-## Going beyond
+## Going beyond: Bernoulli model
 
 Choose a more general space for neural activities.
 Bernoulli encoding model
@@ -46,13 +46,26 @@ Interpretation: bell-shaped function outputing the probability of spiking. It ha
 $$
 p(r|x) =\exp(\eta(x)r - \sum_j\log(1+e^{\eta_j(x)}) )
 $$
-Approximation $\sum_j \log(1 + e^{\eta_j(x)})$ is independent from x --> to verify, usualli it is assumed $\sum_ju_j(x) $ indep from x.
-
-Inverting the relationship, one realize
+Approximation $\sum_j \log(1 + e^{\eta_j(x)})$ is independent from x --> to verify, usually it is assumed $\sum_ju_j(x) $ indep from x.
+By bayes theorem
 $$
 p(x|r) \propto p(r|x)p(x) \propto \exp((x,x^2)^T\Theta r - \sum_j(...) + \log(\pi(x)))
 $$
-IF the sum is independent from x, and $log(\pi(x)) \propto \exp(ax^2 + bx) $  depends only on the first and second moment, we can recognize the form of a Gaussian, with *natural* parameters $\Theta_1*r + a, \Theta_2*r + b$ . From the natural parameters, it is possible to obtain the mean and variance of the gaussian function.
+IF the sum is independent from x, and $log(\pi(x)) \propto ax^2 + bx $  depends only on the first and second moment, we can recognize the form of a Gaussian, with *natural* parameters $\Phi_1r + a, \Phi_2r + b$ . Indeed writing only the terms which depends from x, we obtain
+
+
+$$
+p(x|r) \propto \exp((x,x^2)^T\eta_{dec} )\\
+\eta_{dec,1} = \sum_j \frac{c_j}{\sigma_j^2}r_j +b\\
+\eta_{dec,2} = -\sum_j \frac{1}{2\sigma_j^2}r_j +a
+$$
+
+ From the natural parameters, it is possible to obtain the mean and variance of the gaussian function, as
+$$
+\mu_{dec} = -\frac{\eta_1}{2\eta_2}\\
+\sigma_{dec}^2 = -\frac{1}{2\eta_2}
+$$
+
 
 Choice of the prior:
 
@@ -64,6 +77,19 @@ $$
 * hard to compute the Dkl in a closed form, as the normalization is not straightforward
 * hard to sample from
 * ...
+
+E.g. (2): i.i.d Bernoulli prior
+$$
+q (r)	 = \Pi_j q(r_j)\\
+q(r_j) = Bernoulli(p_q)
+$$
+If we assume $p_p=0.5$ , this is equivalent to assume that all binary words are equiprobable. The Rate can be computed exactly as
+
+
+$$
+R \equiv \langle D_{KL}(p(r|x)||q(r))) \rangle_x = \langle \sum_j p_{j,x} \log\frac{p_{j,x}}{p_q} + (1-p_{j,x})\log(\frac{1-p_{j,x}}{1-p_q}) 	\rangle_x
+$$
+
 
 E.g. (2): mixture of posterior distribution.  From the minimization of Eq. (1), given a decoder, the optimal prior is the marginal posterior
 $$
@@ -77,4 +103,4 @@ and suggest to find also $x_k$ with Gradient descent. Note that within this form
 $$
 \sum_r p(r|x) \log\frac{p(r|x)}{q(r)} \approx \log(\sum_k \frac{1}{K} \exp(-Dkl(p(r|x)||p(r|x_k)))
 $$
-with the advantage that the Dkl in the exponents are Dkl between bernoulli probabilities, so they have an analytical form.  In this way, we  eliminate beta, as  we may simly vary the number of mixtures K.		
+with the advantage that the Dkl in the exponents are Dkl between bernoulli probabilities, so they have an analytical form.  In this way, we  eliminate beta, as  we may simly vary the number of mixtures K.				
