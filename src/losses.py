@@ -56,3 +56,6 @@ def distortion_gaussian(x,encoder,decoder,lat_samp=10,tau=0.5):
     return D
 
 
+def rate(x):
+  return None
+# %%
