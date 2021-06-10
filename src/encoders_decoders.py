@@ -15,9 +15,9 @@ def initialize_categorical_params(c0,sigma0,q0):
 def initialize_bernoulli_params(N,x_min,x_max):
     #Initialize parameters arranging centers equally spaced in the range x_min x_max,
     # and the width as 5 times the spacing between centers
-    cs = torch.nn.Parameter(torch.arange(x_min,x_max,(x_max-x_min)/N))[None,:]
-    log_sigmas = torch.log(torch.ones(N)*5*(x_max-x_min)/N)[None,:]
-    As = torch.nn.Parameter(torch.ones(N))[None,:]
+    cs = torch.nn.Parameter(torch.arange(x_min,x_max,(x_max-x_min)/N)[None,:])
+    log_sigmas = torch.nn.Parameter(torch.log(torch.ones(N)*(x_max-x_min)/N)[None,:])
+    As = torch.nn.Parameter(torch.ones(N)[None,:])
     return cs,log_sigmas,As
 class CategoricalEncoder(torch.nn.Module):
     #It returns for each stimulus x a vector of (unnormalized) probabilities (i.e.logits) of activation for
@@ -56,9 +56,9 @@ class BernoulliEncoder(torch.nn.Module):
 def initialize_MOG_params(N,x_min,x_max):
     #Initialize parameters arranging centers equally spaced in the range x_min x_max,
     # and the width as 5 times the spacing between centers
-    mus = torch.nn.Parameter(torch.arange(x_min,x_max,(x_max-x_min)/N))[:,None]
-    log_sigmas = torch.log(torch.ones(N)*5*(x_max-x_min)/N)[:,None]
-    qs = torch.nn.Parameter(torch.ones(N))[:,None]
+    mus = torch.nn.Parameter(torch.arange(x_min,x_max,(x_max-x_min)/N)[:,None])
+    log_sigmas = torch.nn.Parameter(torch.log(torch.ones(N)*(x_max-x_min)/N)[:,None])
+    qs = torch.nn.Parameter(torch.ones(N)[:,None])
     return qs,mus,log_sigmas
 class MoGDecoder(torch.nn.Module):
     #Decoder as a mixture of Gaussians, parameters are q(memberships), mean and variances.
