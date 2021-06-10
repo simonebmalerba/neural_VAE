@@ -1,5 +1,5 @@
 {
-    "python.pythonPath": "/home/simone/anaconda3/envs/VAE_efficient_coding/bin/python",
+    "python.pythonPath": "C:\\Users\\auror\\anaconda3\\python.exe",
     "jupyter.jupyterServerType": "local",
     "python.formatting.blackArgs": [
         "--line-length",
