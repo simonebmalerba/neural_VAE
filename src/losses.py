@@ -61,7 +61,6 @@ def distortion_gaussian(x,encoder,decoder,lat_samp=10,tau=0.5):
     0.5*torch.log(2*np.pi*sigma2_dec)
     D = -logq_x_r.mean()
     return D
-<<<<<<< HEAD
 ##
 def distortion_ideal(x,encoder,lat_samp=10,tau=0.5):
     l_r_x = encoder(x)
@@ -85,11 +84,3 @@ def rate_vampBernoulli(x,encoder,x_k):
     KLs = (torch.sigmoid(l_r_x)*(F.logsigmoid(l_r_x) - F.logsigmoid(l_r)) + torch.sigmoid(-l_r_x)*  (F.logsigmoid(-l_r_x) - F.logsigmoid(-l_r))).sum(dim=1)
     R = -torch.logsumexp(-KLs-np.log(K),dim=1).mean()
     return R
-=======
-
-
-def rate(x):
-    a = x**2
-    return a
-
->>>>>>> 3b01ee2196fa5093f02764f3f43ad608257d94d0
