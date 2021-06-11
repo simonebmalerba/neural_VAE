@@ -5,23 +5,26 @@ import numpy as np
 # %%
 ## Encoders
 # Proposed convention: x is a vector [bsize_size,1] (or  [bsize_size, x_dim]).
-# Encoder should return a [bsize_size,N] tensor as a differentiable function of the encoding parameters (e.g. logits, probs).
-# Sample method is used to sample from the latent space, but is not differentiable.
+# Encoder should return a [bsize_size,N] tensor as a differentiable function of 
+# the encoding parameters (e.g. logits, probs). Sample method is used to sample 
+# from the latent space, but is not differentiable.
 def initialize_categorical_params(c0,sigma0,q0):
     a = torch.nn.Parameter(-1/(2*sigma0**2))
     b = torch.nn.Parameter(c0/sigma0**2)
-    c = torch.nn.Parameter(-c0**2/(2*sigma0**2) -torch.log(sigma0) - torch.log(F.softmax(q0,dim=1)))
+    c = torch.nn.Parameter(-c0**2/(2*sigma0**2) -torch.log(sigma0) - 
+    torch.log(F.softmax(q0,dim=1)))
     return a,b,c
 def initialize_bernoulli_params(N,x_min,x_max):
     #Initialize parameters arranging centers equally spaced in the range x_min x_max,
     # and the width as 5 times the spacing between centers
-    cs = torch.nn.Parameter(torch.arange(x_min,x_max,(x_max-x_min)/N)[None,:])
+    cs = torch.nn.Parameter(torch.arange(x_min,x_max,(x_max-x_min)/N)[None,0:N])
     log_sigmas = torch.nn.Parameter(torch.log(torch.ones(N)*(x_max-x_min)/N)[None,:])
     As = torch.nn.Parameter(torch.ones(N)[None,:])
     return cs,log_sigmas,As
 class CategoricalEncoder(torch.nn.Module):
-    #It returns for each stimulus x a vector of (unnormalized) probabilities (i.e.logits) of activation for
-    #each neuron, which is a quadratic function of x. 
+    #It returns for each stimulus x a vector of (unnormalized) probabilities 
+    # (i.e.logits) of activation for each neuron, which is a quadratic function
+    # of x. 
     def __init__(self,c0,sigma0,q0):
         super().__init__()
         self.a,self.b,self.c = initialize_categorical_params(c0,sigma0,q0)
@@ -46,7 +49,8 @@ class BernoulliEncoder(torch.nn.Module):
         etas = -(x**2)@inv_sigmas + 2*x@(self.cs*inv_sigmas) - (self.cs**2)*inv_sigmas + torch.log(self.As)
         return etas
     def sample(self,x,nsamples):
-        r = torch.distributions.bernoulli.Bernoulli(logits = self.forward(x)).sample((nsamples,))
+        p_r_x = torch.distributions.bernoulli.Bernoulli(logits = self.forward(x))
+        r = p_r_x.sample((nsamples,)).transpose(0,1)
         return r
 
 # %%
@@ -72,7 +76,8 @@ class MoGDecoder(torch.nn.Module):
         return r @ self.mus, r @ self.log_sigmas
 
 class GaussianDecoder(torch.nn.Module):
-    # Return natural parameters of a gaussian distribution as a linear combination of neural activities
+    # Return natural parameters of a gaussian distribution as a linear 
+    # combination of neural activities
     def __init__(self,phi0):
         super().__init__()
         self.phi = torch.nn.Parameter(phi0)

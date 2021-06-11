@@ -103,4 +103,4 @@ and suggest to find also $x_k$ with Gradient descent. Note that within this form
 $$
 \sum_r p(r|x) \log\frac{p(r|x)}{q(r)} \approx \log(\sum_k \frac{1}{K} \exp(-Dkl(p(r|x)||p(r|x_k)))
 $$
-with the advantage that the Dkl in the exponents are Dkl between bernoulli probabilities, so they have an analytical form.  In this way, we  eliminate beta, as  we may simly vary the number of mixtures K.				
+with the advantage that the Dkl in the exponents are Dkl between bernoulli probabilities, so they have an analytical form.  In this way, we obtain $\beta$ -VAE as the result of varying K				
