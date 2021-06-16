@@ -2,6 +2,7 @@
 import torch
 import torch.nn.functional as F
 import numpy as np
+
 # %%
 ## Encoders
 # Proposed convention: x is a vector [bsize_size,1] (or  [bsize_size, x_dim]).
@@ -19,8 +20,8 @@ def initialize_bernoulli_params(N,x_min,x_max):
     # and the width as 5 times the spacing between centers
     cs = torch.nn.Parameter(torch.arange(x_min,x_max,(x_max-x_min)/N)[None,0:N])
     log_sigmas = torch.nn.Parameter(torch.log(torch.ones(N)*(x_max-x_min)/N)[None,:])
-    As = torch.nn.Parameter(torch.ones(N)[None,:])
-    return cs,log_sigmas,As
+    logAs = torch.nn.Parameter(torch.log(torch.ones(N)[None,:]))
+    return cs,log_sigmas,logAs
 class CategoricalEncoder(torch.nn.Module):
     #It returns for each stimulus x a vector of (unnormalized) probabilities 
     # (i.e.logits) of activation for each neuron, which is a quadratic function
@@ -33,8 +34,11 @@ class CategoricalEncoder(torch.nn.Module):
         p_tilde = (x**2)@(self.a) + x@(self.b) + self.c
         return p_tilde
     def sample(self,x,nsamples):
+        _,N = self.a.shape
         p_r_x = F.softmax(self.forward(x),dim=1)
-        return torch.distributions.categorical.Categorical(p_r_x).sample((nsamples,))
+        r_cat = torch.distributions.categorical.Categorical(p_r_x).sample((nsamples,))
+        r = F.one_hot(r_cat,N).to(dtype=torch.float32)
+        return r
 
 
 class BernoulliEncoder(torch.nn.Module):
@@ -42,11 +46,12 @@ class BernoulliEncoder(torch.nn.Module):
     # a quadratic function of x
     def __init__(self,N,x_min,x_max):
         super().__init__()
-        self.cs, self.log_sigmas,self.As  = initialize_bernoulli_params(N,x_min,x_max)
+        self.cs, self.log_sigmas,self.logAs  = initialize_bernoulli_params(N,x_min,x_max)
     def forward(self,x):
         # x has shape [bsize_dim,x_dim], c,log_sigma,A have shape [x_dim, N]
         inv_sigmas = 0.5*torch.exp(-2*self.log_sigmas)
-        etas = -(x**2)@inv_sigmas + 2*x@(self.cs*inv_sigmas) - (self.cs**2)*inv_sigmas + torch.log(self.As)
+        etas = -(x**2)@inv_sigmas + 2*x@(self.cs*inv_sigmas) - \
+        (self.cs**2)*inv_sigmas + self.logAs
         return etas
     def sample(self,x,nsamples):
         p_r_x = torch.distributions.bernoulli.Bernoulli(logits = self.forward(x))
@@ -60,7 +65,7 @@ class BernoulliEncoder(torch.nn.Module):
 def initialize_MOG_params(N,x_min,x_max):
     #Initialize parameters arranging centers equally spaced in the range x_min x_max,
     # and the width as 5 times the spacing between centers
-    mus = torch.nn.Parameter(torch.arange(x_min,x_max,(x_max-x_min)/N)[:,None])
+    mus = torch.nn.Parameter(torch.arange(x_min,x_max,(x_max-x_min)/N)[0:N,None])
     log_sigmas = torch.nn.Parameter(torch.log(torch.ones(N)*(x_max-x_min)/N)[:,None])
     qs = torch.nn.Parameter(torch.ones(N)[:,None])
     return qs,mus,log_sigmas
@@ -74,6 +79,11 @@ class MoGDecoder(torch.nn.Module):
         # should be a one_hot tensor. Alternative is 
         # return self.mus[r],self.log_sigmas[r] if r are categories
         return r @ self.mus, r @ self.log_sigmas
+    def sample(self,r,dec_samples):
+        mu_dec,log_sigma_dec = self.forward(r)
+        q_x_r = torch.distributions.normal.Normal(mu_dec,torch.exp(log_sigma_dec))
+        x_dec = q_x_r.sample((dec_samples,))
+        return x_dec
 
 class GaussianDecoder(torch.nn.Module):
     # Return natural parameters of a gaussian distribution as a linear 
@@ -91,6 +101,14 @@ class GaussianDecoder(torch.nn.Module):
         mu = -0.5*eta1/eta2
         sigma =  - 0.5/eta2
         return mu, sigma
+    def sample(self,r,dec_samples):
+        mu_dec,sigma2_dec = self.forward(r)
+        #Terrible hack, we should find a way to deal with the rare cases
+        # of σ^2 <0
+        sigma2_dec[sigma2_dec<0] = torch.sqrt(sigma2_dec[sigma2_dec<0]**2)
+        q_x_r = torch.distributions.normal.Normal(mu_dec,torch.sqrt(sigma2_dec))
+        x_dec = q_x_r.sample((dec_samples,))
+        return x_dec
     
     
 class GaussianDecoder_1(torch.nn.Module):
