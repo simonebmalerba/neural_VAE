@@ -75,7 +75,7 @@ def distortion_ideal(x,encoder,lat_samp=10,tau=0.5):
 ##
 def rate_iidBernoulli(x,encoder,p_q):
     l_r_x = encoder(x)
-    R = (torch.sigmoid(l_r_x)*(F.logsigmoid(l_r_x) - np.log(p_q)) + torch.sigmoid(-l_r_x)*(F.logsigmoid(-l_r_x) - np.log(1-p_q))).sum(dim=1).mean()
+    R = (torch.sigmoid(l_r_x)*(F.logsigmoid(l_r_x) - torch.log(p_q)) + torch.sigmoid(-l_r_x)*(F.logsigmoid(-l_r_x) - torch.log(1-p_q))).sum(dim=1).mean()
     return R
 def rate_vampBernoulli(x,encoder,x_k):
     #x_k = x_sorted[random.sample(range(500),K)]
