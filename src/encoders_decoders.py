@@ -111,6 +111,8 @@ class GaussianDecoder(torch.nn.Module):
         return x_dec
 
 class MLPDecoder(torch.nn.Module):
+    #Multilayer Perceptron with one hidden layer, returning the mean and the 
+    #variance of a gaussian distribution
     def __init__(self,N,M):
         super().__init__()
         self.hidden = torch.nn.Linear(N,M)
@@ -119,7 +121,7 @@ class MLPDecoder(torch.nn.Module):
     def forward(self,r):
         H = self.f(self.hidden(r))
         mu,log_sigma = torch.split(self.w(H),1,dim=2)
-        sigma2 = torch.exp(-2*log_sigma)
+        sigma2 = torch.exp(2*log_sigma)
         return torch.squeeze(mu),torch.squeeze(sigma2)
     def sample(self,r,dec_samples):
         mu_dec,sigma2_dec = self.forward(r)

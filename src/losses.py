@@ -96,3 +96,4 @@ def MSE_montecarlo(x,encoder,decoder,lat_samp =10,dec_samp=10):
     mseVec = ((x_dec - x[None,:])**2).mean(dim=(0,2))
     return mseVec.mean()
 # %%
+
