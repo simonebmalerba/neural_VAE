@@ -8,7 +8,7 @@ from sklearn import cluster
 # Proposed convention: x is a vector [bsize_size,1] (or  [bsize_size, x_dim]).
 # Encoder should return a [bsize_size,N] tensor as a differentiable function of 
 # the encoding parameters (e.g. logits, probs). Sample method is used to sample 
-# from the latent space, but is not differentiable. ///
+# from the latent space, but is not differentiable. /
 def initialize_categorical_params(c0,sigma0,q0):
     a = torch.nn.Parameter(-1/(2*sigma0**2))
     b = torch.nn.Parameter(c0/sigma0**2)
