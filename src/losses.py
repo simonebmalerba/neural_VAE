@@ -68,7 +68,7 @@ def rate_cat_orig(x,encoder,decoder):
 def MSE_cat(x,decoder,encoder):
     # MSE is obtained as Σ_j p(j|x) ((x-μ_j)^2 + σ^2_j)
     if encoder is None:
-        encoder = CategoricalEncoder(decoder.mus.transpose(0,1),\
+        encoder = CategoricalEncoder(decoder.mus.transpose(0,1),
         torch.exp(decoder.log_sigmas).transpose(0,1),decoder.qs.transpose(0,1))
     l_j_x = encoder(x)
     mse = (F.softmax(l_j_x,dim=1)*((x-decoder.mus.transpose(0,1))**2 + 
@@ -111,18 +111,24 @@ def distortion_ideal(x,encoder,lat_samp=10,tau=0.5):
 ##
 def rate_iidBernoulli(x,encoder,p_q):
     l_r_x = encoder(x)
-    R = (torch.sigmoid(l_r_x)*(F.logsigmoid(l_r_x) - np.log(p_q)) + torch.sigmoid(-l_r_x)*(F.logsigmoid(-l_r_x) - np.log(1-p_q))).sum(dim=1).mean()
+    R = (torch.sigmoid(l_r_x)*(F.logsigmoid(l_r_x) - torch.log(p_q)) + torch.sigmoid(-l_r_x)*(F.logsigmoid(-l_r_x) - torch.log(1-p_q))).sum(dim=1).mean()
     return R
 def rate_vampBernoulli(x,encoder,x_k):
     #x_k = x_sorted[random.sample(range(500),K)]
-    l_r_x = encoder(x_sorted)[:,:,None]
+    K,_ = x_k.shape
+    l_r_x = encoder(x)[:,:,None]
     l_r = encoder(x_k).transpose(0,1)[None,:,:]
-    KLs = (torch.sigmoid(l_r_x)*(F.logsigmoid(l_r_x) - F.logsigmoid(l_r)) + torch.sigmoid(-l_r_x)*  (F.logsigmoid(-l_r_x) - F.logsigmoid(-l_r))).sum(dim=1)
+    KLs = (torch.sigmoid(l_r_x)*(F.logsigmoid(l_r_x) - F.logsigmoid(l_r)) + 
+    torch.sigmoid(-l_r_x)*(F.logsigmoid(-l_r_x) - F.logsigmoid(-l_r))).sum(dim=1)
     R = -torch.logsumexp(-KLs-np.log(K),dim=1).mean()
     return R
-##
+
+# %%
+
+# %%
 def MSE_montecarlo(x,encoder,decoder,lat_samp =10,dec_samp=10):
     r = encoder.sample(x,lat_samp)
     x_dec = decoder.sample(r,dec_samp)
     mseVec = ((x_dec - x[None,:])**2).mean(dim=(0,2))
     return mseVec.mean()
+# %%

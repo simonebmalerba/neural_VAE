@@ -61,8 +61,11 @@ class CategoricalEncoder(torch.nn.Module):
         p_tilde = (x**2)@(self.a) + x@(self.b) + self.c
         return p_tilde
     def sample(self,x,nsamples):
+        _,N = self.a.shape
         p_r_x = F.softmax(self.forward(x),dim=1)
-        return torch.distributions.categorical.Categorical(p_r_x).sample((nsamples,))
+        r_cat = torch.distributions.categorical.Categorical(p_r_x).sample((nsamples,))
+        r = F.one_hot(r_cat,N).to(dtype=torch.float32)
+        return r
 
 
 class BernoulliEncoder(torch.nn.Module):
@@ -89,7 +92,7 @@ class BernoulliEncoder_sigma(torch.nn.Module):
     # a quadratic function of x
     def __init__(self,N,x_min,x_max,xs,w):
         super().__init__()
-        self.cs, self.log_sigmas,self.As  = initialize_bernoulli_params(N,x_min,x_max,xs,w)
+        self.cs, self.log_sigmas,self.logAs  = initialize_bernoulli_params(N,x_min,x_max)
     def forward(self,x):
         # x has shape [bsize_dim,x_dim], c,log_sigma,A has shape [x_dim, N]
         inv_sigmas = 0.5*torch.exp(-2*self.log_sigmas)
