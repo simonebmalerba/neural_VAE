@@ -88,6 +88,7 @@ def distortion_gaussian(x,encoder,decoder,lat_samp=10,tau=0.5):
     #Logit r|x
     l_r_x = encoder(x)
     bsize,N = l_r_x.shape
+    #ALERT: Gumbel Softmax trick
     eps = torch.rand(bsize,lat_samp,N)
     r = torch.sigmoid((torch.log(eps) - torch.log(1-eps) + l_r_x[:,None,:])/tau)
     mu_dec,sigma2_dec = decoder(r)
@@ -109,10 +110,12 @@ def distortion_ideal(x,encoder,lat_samp=10,tau=0.5):
     D = torch.cat([-torch.log(h[i,:,i]) for i in range(bsize)]).mean()
     return D
 ##
+#IId bernoulli prior
 def rate_iidBernoulli(x,encoder,p_q):
     l_r_x = encoder(x)
     R = (torch.sigmoid(l_r_x)*(F.logsigmoid(l_r_x) - torch.log(p_q)) + torch.sigmoid(-l_r_x)*(F.logsigmoid(-l_r_x) - torch.log(1-p_q))).sum(dim=1).mean()
     return R
+#VAMP prior
 def rate_vampBernoulli(x,encoder,x_k):
     #x_k = x_sorted[random.sample(range(500),K)]
     K,_ = x_k.shape
@@ -122,9 +125,37 @@ def rate_vampBernoulli(x,encoder,x_k):
     torch.sigmoid(-l_r_x)*(F.logsigmoid(-l_r_x) - F.logsigmoid(-l_r))).sum(dim=1)
     R = -torch.logsumexp(-KLs-np.log(K),dim=1).mean()
     return R
+    
 
 # %%
-
+class rate_ising(torch.nn.Module):
+    def __init__(self,N):
+        super().__init__()
+        #Magnetization 1xN
+        self.h = torch.nn.Parameter(-1*torch.ones(N)[None,:])
+        #Initialization of J, NxN matrix. Symmetric and with 0 diagonal.
+        #Remember to register the hook for clipping the gradient of diagonal to 0
+        W = np.sqrt(1/N)*torch.randn(N,N)
+        J = W*W.transpose(0,1)
+        J.fill_diagonal_(0)
+        self.J = torch.nn.Parameter(J)
+        #All binary patterns: Nx2^N
+        r_all = np.asarray(list(itertools.product([0, 1], repeat=N)))
+        self.r_all = torch.tensor(r_all).transpose(0,1).type(torch.float)
+    def forward(self,enc,x):
+        #Natural parameters of encoder: bsizexN
+        eta = enc(x)
+        #Mean <r>_r|x
+        mu_r_x = torch.sigmoid(eta).transpose(0,1)
+        #Data dependent elemts
+        eta_h_r = ((eta - self.h)*mu_r_x.transpose(0,1)).sum(dim=1)
+        r_J_r = (mu_r_x*(self.J@mu_r_x)).sum(dim=0)
+        #Bernoulli partition function   
+        logZ1 = (torch.log( 1 + torch.exp(eta))).sum(dim=1)
+        #Ising partition function
+        logZ = torch.logsumexp((self.h@self.r_all + (r_all*(self.J@self.r_all)).sum(dim=0)),1)
+        R = (eta_h_r - r_J_r + logZ1 + logZ).mean()
+        return R
 # %%
 def MSE_montecarlo(x,encoder,decoder,lat_samp =10,dec_samp=10):
     r = encoder.sample(x,lat_samp)
