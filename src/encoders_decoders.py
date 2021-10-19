@@ -9,6 +9,8 @@ from sklearn import cluster
 # Encoder should return a [bsize_size,N] tensor as a differentiable function of 
 # the encoding parameters (e.g. logits, probs). Sample method is used to sample 
 # from the latent space, but is not differentiable. /
+
+#ENCODER INITIALIZATION
 def initialize_categorical_params(c0,sigma0,q0):
     a = torch.nn.Parameter(-1/(2*sigma0**2))
     b = torch.nn.Parameter(c0/sigma0**2)
@@ -48,7 +50,7 @@ def initialize_bernoulli_params_mu(N,x_min,x_max,xs,w):
     As = torch.nn.Parameter(torch.ones(N)[None,:])
     return cs,log_sigmas,As
 
-    
+#ENCODER DEFINITION  
 class CategoricalEncoder(torch.nn.Module):
     #It returns for each stimulus x a vector of (unnormalized) probabilities 
     # (i.e.logits) of activation for each neuron, which is a quadratic function
@@ -87,29 +89,13 @@ class BernoulliEncoder(torch.nn.Module):
         r = p_r_x.sample((nsamples,)).transpose(0,1)
         return r
 
-class BernoulliEncoder_sigma(torch.nn.Module):
-    # Encoder returning for N neurons their unnormalized probabilities of being active (i.e. logits),as 
-    # a quadratic function of x
-    def __init__(self,N,x_min,x_max,xs,w):
-        super().__init__()
-        self.cs, self.log_sigmas,self.logAs  = initialize_bernoulli_params(N,x_min,x_max)
-    def forward(self,x):
-        # x has shape [bsize_dim,x_dim], c,log_sigma,A has shape [x_dim, N]
-        inv_sigmas = 0.5*torch.exp(-2*self.log_sigmas)
-        etas = -(x**2)@inv_sigmas
-        etas2 = + 2*x@((self.cs*inv_sigmas))
-        etas3 = - (self.cs**2)*inv_sigmas + torch.log(self.As)
-        return etas + etas2 + etas3
-
-    def sample(self,x,nsamples):
-        p_r_x = torch.distributions.bernoulli.Bernoulli(logits = self.forward(x))
-        r = p_r_x.sample((nsamples,)).transpose(0,1)
-        return r
 
 # %%
 ## Decoders
 # After a sampling from the latent space, we have to get a matrix [bsize,n_samples,N] of neural activation.
 # The decoder may have different forms, but should return the parameters of an output distribution.
+
+#DECODER INITIALIZATION
 def initialize_MOG_params(N,x_min,x_max, x):
     #Initialize parameters arranging centers equally spaced in the range x_min x_max,
     # and the width as 5 times the spacing between centers
@@ -125,6 +111,8 @@ def initialize_MOG_params(N,x_min,x_max, x):
     log_sigmas = torch.nn.Parameter(torch.log(torch.ones(N)*(x_max-x_min)/N)[:,None])
     qs = torch.nn.Parameter(torch.ones(N)[:,None])
     return qs,mus,log_sigmas
+
+#DECODER DEFINITION
 class MoGDecoder(torch.nn.Module):
     #Decoder as a mixture of Gaussians, parameters are q(memberships), mean and variances.
     def __init__(self,N,x_min,x_max,x):
