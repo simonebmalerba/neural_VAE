@@ -3,6 +3,7 @@ import torch
 import torch.nn.functional as F
 import numpy as np
 from src.encoders_decoders import *
+import itertools
 # %%
 ### Categorical latent space 
 
@@ -91,7 +92,8 @@ def distortion_gaussian(x,encoder,decoder,lat_samp=10,tau=0.5):
     #ALERT: Gumbel Softmax trick
     eps = torch.rand(bsize,lat_samp,N)
     r = torch.sigmoid((torch.log(eps) - torch.log(1-eps) + l_r_x[:,None,:])/tau)
-    mu_dec,sigma2_dec = decoder(r)
+    mu_dec,log_sigma = decoder(r)
+    sigma2_dec = torch.exp(2*log_sigma)
     inv_sigma2_dec = 1/sigma2_dec
     mp = mu_dec*inv_sigma2_dec
     logq_x_r = -0.5*(x**2)*inv_sigma2_dec + x*mp - 0.5*mu_dec*mp -\
@@ -153,7 +155,7 @@ class rate_ising(torch.nn.Module):
         #Bernoulli partition function   
         logZ1 = (torch.log( 1 + torch.exp(eta))).sum(dim=1)
         #Ising partition function
-        logZ = torch.logsumexp((self.h@self.r_all + (r_all*(self.J@self.r_all)).sum(dim=0)),1)
+        logZ = torch.logsumexp((self.h@self.r_all + (self.r_all*(self.J@self.r_all)).sum(dim=0)),1)
         R = (eta_h_r - r_J_r + logZ1 + logZ).mean()
         return R
 # %%
