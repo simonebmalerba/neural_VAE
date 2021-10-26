@@ -48,6 +48,13 @@ def initialize_bernoulli_params_mu(N,x_min,x_max,xs,w):
     As = torch.nn.Parameter(torch.ones(N)[None,:])
     return cs,log_sigmas,As
 
+def initialize_circbernoulli(N):
+    cs = torch.nn.Parameter(torch.arange(0,2*np.pi,2*np.pi/N)[None,0:N])
+    sigmas = (torch.ones(N)*2*np.pi/(5*N))[None,:]
+    log_ks = torch.nn.Parameter(torch.log(1/sigmas))
+    As = torch.nn.Parameter(torch.exp(-torch.exp(log_ks))*torch.ones(N)[None,:])
+    return cs,log_ks,As
+
 #ENCODER DEFINITION  
 class CategoricalEncoder(torch.nn.Module):
     #It returns for each stimulus x a vector of (unnormalized) probabilities 
@@ -86,6 +93,8 @@ class BernoulliEncoder(torch.nn.Module):
         p_r_x = torch.distributions.bernoulli.Bernoulli(logits = self.forward(x))
         r = p_r_x.sample((nsamples,)).transpose(0,1)
         return r
+
+
 class BernoulliEncoderLinPars(torch.nn.Module):
     # Encoder returning for N neurons their unnormalized probabilities of being active (i.e. logits),as 
     # a quadratic function of x
@@ -108,6 +117,19 @@ class BernoulliEncoderLinPars(torch.nn.Module):
         r = p_r_x.sample((nsamples,)).transpose(0,1)
         return r
 
+class CircularBernoulliEncoder(torch.nn.Module):
+    # Encoder returning for N neurons their unnormalized probabilities of being active (i.e. logits),as 
+    # a quadratic function of x
+    def __init__(self,N):
+        super().__init__()
+        self.cs, self.log_ks,As  = initialize_circbernoulli(N)
+    def forward(self,theta): 
+        etas = torch.exp(log_ks)*torch.cos(theta_fine - cs) + torch.log(As)
+        return etas
+    def sample(self,theta,nsamples):
+        p_r_x = torch.distributions.bernoulli.Bernoulli(logits = self.forward(theta))
+        r = p_r_x.sample((nsamples,)).transpose(0,1)
+        return r
 
 # %%
 ## Decoders
