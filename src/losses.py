@@ -1,7 +1,14 @@
+
+
+
+
 #%%
+
 import torch
 import torch.nn.functional as F
 import numpy as np
+import scipy.special
+import itertools
 from src.encoders_decoders import *
 # %%
 ### Categorical latent space 
@@ -88,7 +95,7 @@ def distortion_gaussian(x,encoder,decoder,lat_samp=10,tau=0.5):
     #Logit r|x
     l_r_x = encoder(x)
     bsize,N = l_r_x.shape
-    #ALERT: Gumbel Softmax trick
+    #ALERT: Gumbel Softmax trick (TO DEEPEN ALSO FOR THE THESIS)
     eps = torch.rand(bsize,lat_samp,N)
     r = torch.sigmoid((torch.log(eps) - torch.log(1-eps) + l_r_x[:,None,:])/tau)
     mu_dec,sigma2_dec = decoder(r)
@@ -109,6 +116,21 @@ def distortion_ideal(x,encoder,lat_samp=10,tau=0.5):
     h = torch.softmax(r@lam + b,dim=2)
     D = torch.cat([-torch.log(h[i,:,i]) for i in range(bsize)]).mean()
     return D
+
+def distortion_circular(x,encoder,decoder,lat_samp=10,tau=0.5):
+    #Logit r|x
+    l_r_x = encoder(x)
+    bsize,N = l_r_x.shape
+    #ALERT: Gumbel Softmax trick (TO DEEPEN ALSO FOR THE THESIS)
+    eps = torch.rand(bsize,lat_samp,N)
+    r = torch.sigmoid((torch.log(eps) - torch.log(1-eps) + l_r_x[:,None,:])/tau)
+    mu_dec,sigma2_dec = decoder(r)
+    k = (1/sigma2_dec).detach()
+    mp = mu_dec*k
+    logq_x_r = k*torch.cos(x-mu_dec) - torch.log(2*torch.as_tensor(math.pi)) - torch.log(scipy.special.iv(0,k))
+    D = -logq_x_r.mean()
+    return D
+
 ##
 #IId bernoulli prior
 def rate_iidBernoulli(x,encoder,p_q):
@@ -127,6 +149,17 @@ def rate_vampBernoulli(x,encoder,x_k):
     return R
     
 
+
+def rate_ising3(x,encoder,h,J):
+    eta = encoder(x)
+    r1 = np.asarray(list(itertools.product([0, 1], repeat=N)))
+    r = torch.tensor(r1).transpose(0,1).type(torch.float)
+    p_r_x = torch.exp(eta@r - (torch.log( 1 + torch.exp(eta))).sum(dim=1)[:,None])
+    log_ratio = ((eta-h0)@r - (r*(J0@r)).sum(dim=0, keepdim=True) - (torch.log(1+torch.exp(eta))).sum(dim=1)[:,None])
+    logz = torch.log((torch.exp((h0@r) + (r*(J0@r)).sum(dim=0, keepdim=True))).sum(dim=1))
+
+    return ((p_r_x)*(log_ratio)).sum(dim=1).mean() + logz
+
 # %%
 class rate_ising(torch.nn.Module):
     def __init__(self,N):
@@ -135,8 +168,8 @@ class rate_ising(torch.nn.Module):
         self.h = torch.nn.Parameter(-1*torch.ones(N)[None,:])
         #Initialization of J, NxN matrix. Symmetric and with 0 diagonal.
         #Remember to register the hook for clipping the gradient of diagonal to 0
-        W = np.sqrt(1/N)*torch.randn(N,N)
-        J = W*W.transpose(0,1)
+        W = np.sqrt(1/N)*torch.randn(N,N) 
+        J = W*W.transpose(0,1) 
         J.fill_diagonal_(0)
         self.J = torch.nn.Parameter(J)
         #All binary patterns: Nx2^N
@@ -153,9 +186,27 @@ class rate_ising(torch.nn.Module):
         #Bernoulli partition function   
         logZ1 = (torch.log( 1 + torch.exp(eta))).sum(dim=1)
         #Ising partition function
-        logZ = torch.logsumexp((self.h@self.r_all + (r_all*(self.J@self.r_all)).sum(dim=0)),1)
+        logZ = torch.logsumexp((self.h@self.r_all + (self.r_all*(self.J@self.r_all)).sum(dim=0)),1)
         R = (eta_h_r - r_J_r + logZ1 + logZ).mean()
         return R
+
+class rate_ISING(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+        N = 10
+        h0 = torch.zeros((1,N)).type(torch.float)
+        J0 = torch.eye(N).type(torch.float)
+        self.h = torch.nn.Parameter(h0)
+        self.J = torch.nn.Parameter(J0)
+    def forward(self,x):
+        eta = enc(x) 
+        r1 = np.asarray(list(itertools.product([0, 1], repeat=N)))
+        r = torch.tensor(r1).transpose(0,1).type(torch.float)
+        p_r_x = torch.exp(eta@r - (torch.log( 1 + torch.exp(eta))).sum(dim=1)[:,None])
+        log_ratio = ((eta-self.h)@r - (r*(self.J@r)).sum(dim=0, keepdim=True) - (torch.log(1+torch.exp(eta))).sum(dim=1)[:,None])
+        logz = torch.log((torch.exp((self.h@r) + (r*(self.J@r)).sum(dim=0, keepdim=True))).sum(dim=1))
+        
+        return ((p_r_x)*(log_ratio)).sum(dim=1).mean() + logz
 # %%
 def MSE_montecarlo(x,encoder,decoder,lat_samp =10,dec_samp=10):
     r = encoder.sample(x,lat_samp)

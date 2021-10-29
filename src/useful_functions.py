@@ -13,7 +13,7 @@ def show_plots(elements):
     #Get the min and max of all your data
     _min, _max = np.amin(combined_data), np.amax(combined_data)
 
-    fig = plt.figure(figsize=(5,5))
+    fig = plt.figure(figsize=(10,10))
     for i in range(len(elements)):
         ax = fig.add_subplot(len(elements), 1, i+1)
         #Add the vmin and vmax arguments to set the color scale
