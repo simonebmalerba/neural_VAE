@@ -51,9 +51,10 @@ def initialize_bernoulli_params_mu(N,x_min,x_max,xs,w):
 
 def initialize_circbernoulli(N):
     cs = torch.nn.Parameter(torch.arange(0,2*np.pi,2*np.pi/N)[None,0:N])
-    sigmas = (torch.ones(N)*2*np.pi/(5*N))[None,:]
+    sigmas = (torch.ones(N)*2*np.pi/(2*N))[None,:]
     log_ks = torch.nn.Parameter(torch.log(1/sigmas))
-    As = torch.nn.Parameter(torch.exp(-torch.exp(log_ks))*torch.ones(N)[None,:])
+    #As = torch.nn.Parameter(torch.exp(-torch.exp(log_ks))*torch.ones(N)[None,:])
+    As = torch.nn.Parameter(torch.ones(N)[None,:])
     return cs,log_ks,As
 
 #ENCODER DEFINITION  
