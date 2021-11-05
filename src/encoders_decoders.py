@@ -53,9 +53,9 @@ def initialize_circbernoulli(N):
     cs = torch.nn.Parameter(torch.arange(0,2*np.pi,2*np.pi/N)[None,0:N])
     sigmas = (torch.ones(N)*2*np.pi/(2*N))[None,:]
     log_ks = torch.nn.Parameter(torch.log(1/sigmas))
-    #As = torch.nn.Parameter(torch.exp(-torch.exp(log_ks))*torch.ones(N)[None,:])
-    As = torch.nn.Parameter(torch.ones(N)[None,:])
-    return cs,log_ks,As
+    log_As = torch.nn.Parameter(torch.log((torch.exp(-torch.exp(log_ks))*torch.ones(N)[None,:])))
+    #As = torch.nn.Parameter(torch.ones(N)[None,:])
+    return cs,log_ks,log_As
 
 #ENCODER DEFINITION  
 class CategoricalEncoder(torch.nn.Module):
@@ -123,9 +123,9 @@ class CircularBernoulliEncoder(torch.nn.Module):
     
     def __init__(self,N):
         super().__init__()
-        self.cs, self.log_ks,self.As  = initialize_circbernoulli(N)
+        self.cs, self.log_ks,self.log_As  = initialize_circbernoulli(N)
     def forward(self,theta): 
-        etas = torch.exp((self.log_ks)*torch.cos(theta - self.cs)) + torch.log(self.As)
+        etas = torch.exp((self.log_ks)*torch.cos(theta - self.cs)) + self.log_As
         return etas
     def sample(self,theta,nsamples):
         p_r_x = torch.distributions.bernoulli.Bernoulli(logits = self.forward(theta))
@@ -251,5 +251,26 @@ class MLPDecoder(torch.nn.Module):
         x_dec = q_x_r.sample((dec_samples,))
         return x_dec
 
+
+
+class MLPDecoder_circ(torch.nn.Module):
+    def __init__(self,N,M):
+        super().__init__()
+        self.hidden = torch.nn.Linear(N,M)
+        self.f = torch.nn.ReLU()
+        self.w = torch.nn.Linear(M,2)
+    def forward(self,r):
+        H = self.f(self.hidden(r))
+        mu,log_k = torch.split(self.w(H),1,dim=2)
+        #sigma2 = torch.exp(-2*log_sigma)
+        return torch.squeeze(mu),torch.squeeze(log_k)
+    def sample(self,r,dec_samples):
+        mu_dec,sigma2_dec = self.forward(r)
+        #Terrible hack, we should find a way to deal with the rare cases
+        # of σ^2 <0
+        sigma2_dec[sigma2_dec<0] = torch.sqrt(sigma2_dec[sigma2_dec<0]**2)
+        q_x_r = torch.distributions.von_mises.VonMises(mu_dec, 1/sigma2_dec)
+        x_dec = q_x_r.sample((dec_samples,))
+        return x_dec
 
 # %%
