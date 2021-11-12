@@ -29,6 +29,19 @@ def encoder_properties(encoder,x_fine):
         axs[1].set_ylabel('sigma_j')
         plt.show()
 
+def decoder_meanvar(encoder,decoder,x_fine,lat_samp = 10):
+        #
+        r = encoder.sample(x_fine,lat_samp)
+        mu_dec,log_sigma_dec = decoder(r)
+        fig,axs = plt.subplots(ncols=1,nrows=2,figsize=(10,10))
+        axs[0].plot(x_fine,mu_dec.mean(dim=1).detach())
+        axs[0].set_xlabel('x')
+        axs[0].set_ylabel('μ')
+        axs[1].plot(x_fine,torch.exp(log_sigma_dec).mean(dim=1).detach())
+        axs[1].set_xlabel('x')
+        axs[1].set_ylabel('σ')
+
+
 def errors_analysis(encoder,decoder,x_fine):
         r = encoder.sample(x_fine,10)
         x_dec = decoder.sample(r,10)

@@ -4,6 +4,7 @@ import torch.nn.functional as F
 import numpy as np
 from src.encoders_decoders import *
 import itertools
+import random
 # %%
 ### Categorical latent space 
 
@@ -118,7 +119,7 @@ def rate_iidBernoulli(x,encoder,p_q):
     R = (torch.sigmoid(l_r_x)*(F.logsigmoid(l_r_x) - torch.log(p_q)) + torch.sigmoid(-l_r_x)*(F.logsigmoid(-l_r_x) - torch.log(1-p_q))).sum(dim=1).mean()
     return R
 #VAMP prior
-def rate_vampBernoulli(x,encoder,x_k):
+def rate_vampBernoullif(x,encoder,x_k):
     #x_k = x_sorted[random.sample(range(500),K)]
     K,_ = x_k.shape
     l_r_x = encoder(x)[:,:,None]
@@ -130,6 +131,29 @@ def rate_vampBernoulli(x,encoder,x_k):
     
 
 # %%
+class rate_bernoulli(torch.nn.Module):
+    def __init__(self,N):
+        super().__init__()
+        #Magnetization 1xN
+        self.h = torch.nn.Parameter(-1*torch.ones(N)[None,:])
+    def forward(self,enc,x):
+        eta = enc(x)
+        return R
+        
+class rate_vampBernoulli(torch.nn.Module):
+    def __init__(self,K,x_samples):
+        super().__init__()
+        self.K = K
+        self.x_k = torch.nn.Parameter(x_samples[random.sample(range(
+            x_samples.size()[0]),self.K)])
+    def forward(self,enc,x):
+        l_r_x = enc(x)[:,:,None]
+        l_r = enc(self.x_k).transpose(0,1)[None,:,:]
+        KLs = (torch.sigmoid(l_r_x)*(F.logsigmoid(l_r_x) - F.logsigmoid(l_r)) + 
+        torch.sigmoid(-l_r_x)*(F.logsigmoid(-l_r_x) - F.logsigmoid(-l_r))).sum(dim=1)
+        R = -torch.logsumexp(-KLs-np.log(self.K),dim=1).mean()
+        return R
+
 class rate_ising(torch.nn.Module):
     def __init__(self,N):
         super().__init__()
@@ -156,7 +180,7 @@ class rate_ising(torch.nn.Module):
         logZ1 = (torch.log( 1 + torch.exp(eta))).sum(dim=1)
         #Ising partition function
         logZ = torch.logsumexp((self.h@self.r_all + (self.r_all*(self.J@self.r_all)).sum(dim=0)),1)
-        R = (eta_h_r - r_J_r + logZ1 + logZ).mean()
+        R = (eta_h_r - r_J_r - logZ1 + logZ).mean()
         return R
 # %%
 def MSE_montecarlo(x,encoder,decoder,lat_samp =10,dec_samp=10):
