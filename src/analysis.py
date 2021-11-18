@@ -35,6 +35,8 @@ def decoder_meanvar(encoder,decoder,x_fine,lat_samp = 10):
         mu_dec,log_sigma_dec = decoder(r)
         fig,axs = plt.subplots(ncols=1,nrows=2,figsize=(10,10))
         axs[0].plot(x_fine,mu_dec.mean(dim=1).detach())
+        axs[0].plot(x_fine,x_fine,label="y=x")
+        axs[0].legend()
         axs[0].set_xlabel('x')
         axs[0].set_ylabel('μ')
         axs[1].plot(x_fine,torch.exp(log_sigma_dec).mean(dim=1).detach())

@@ -217,6 +217,31 @@ class MLPDecoder(torch.nn.Module):
         x_dec = q_x_r.sample((dec_samples,))
         return x_dec
     
+class MLPDecoder2n(torch.nn.Module):
+    #Multilayer Perceptron with two different hidden layer for mu and sigma
+    def __init__(self,N,M):
+        super().__init__()
+        self.hidden = torch.nn.Linear(N,M)
+        self.hidden2 = torch.nn.Linear(N,M)
+        self.f = torch.nn.ReLU()
+        self.wm = torch.nn.Linear(M,1)
+        self.ws = torch.nn.Linear(M,1)
+    def forward(self,r):
+        H = self.f(self.hidden(r))
+        H2 = self.f(self.hidden2(r))
+        mu = self.wm(H)
+        log_sigma  = self.ws(H2)
+        return torch.squeeze(mu),torch.squeeze(log_sigma)
+    def sample(self,r,dec_samples):
+        mu_dec,log_sigma = self.forward(r)
+        sigma2_dec = torch.exp(2*log_sigma)
+        #Terrible hack, we should find a way to deal with the rare cases
+        # of σ^2 <0
+        #sigma2_dec[sigma2_dec<0] = torch.sqrt(sigma2_dec[sigma2_dec<0]**2)
+        q_x_r = torch.distributions.normal.Normal(mu_dec,torch.sqrt(sigma2_dec))
+        x_dec = q_x_r.sample((dec_samples,))
+        return x_dec
+
 class GaussianDecoder_orig(torch.nn.Module):
     #return mu and sigma of a gaussian distribution
     def __init__(self,mu0,sigma0,q0):
