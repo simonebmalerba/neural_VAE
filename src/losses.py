@@ -117,6 +117,7 @@ def distortion_ideal(x,encoder,lat_samp=10,tau=0.5):
     D = torch.cat([-torch.log(h[i,:,i]) for i in range(bsize)]).mean()
     return D
 
+#NO SBAGLIATA:GUARDARE NOTEBOOK
 def distortion_circular(x,encoder,decoder,lat_samp=10,tau=0.5):
     #Logit r|x
     l_r_x = encoder(x)
@@ -184,7 +185,7 @@ class rate_ising(torch.nn.Module):
         eta_h_r = ((eta - self.h)*mu_r_x.transpose(0,1)).sum(dim=1)
         r_J_r = (mu_r_x*(self.J@mu_r_x)).sum(dim=0)
         #Bernoulli partition function   
-        logZ1 = (torch.log( 1 + torch.exp(eta))).sum(dim=1)
+        logZ1 = -(torch.log( 1 + torch.exp(eta))).sum(dim=1)
         #Ising partition function
         logZ = torch.logsumexp((self.h@self.r_all + (self.r_all*(self.J@self.r_all)).sum(dim=0)),1)
         R = (eta_h_r - r_J_r + logZ1 + logZ).mean()
