@@ -49,8 +49,15 @@ def initialize_bernoulli_params_mu(N,x_min,x_max,xs,w):
     return cs,log_sigmas,As
 
 
-def initialize_circbernoulli(N):
-    cs = torch.nn.Parameter(torch.arange(-np.pi,np.pi,2*np.pi/N)[None,0:N])
+def initialize_circbernoulli(N,xs):
+    kmeans = cluster.KMeans(n_clusters=N, init='random',
+                        n_init=10, max_iter=10, random_state=2)
+    C = kmeans.fit_predict(xs)
+    centers = kmeans.cluster_centers_
+    cs = torch.nn.Parameter(torch.Tensor(centers).transpose(0,1))
+
+
+    #cs = torch.nn.Parameter(torch.arange(-np.pi,np.pi,2*np.pi/N)[None,0:N])
     sigmas = (torch.ones(N)*2*np.pi/(2*N))[None,:]
     log_ks = torch.nn.Parameter(torch.log(1/sigmas))
     log_As = torch.nn.Parameter(torch.log((torch.exp(-torch.exp(log_ks))*torch.ones(N)[None,:])))
@@ -121,9 +128,9 @@ class CircularBernoulliEncoder(torch.nn.Module):
     # Encoder returning for N neurons their unnormalized probabilities of being active (i.e. logits),as 
     # a quadratic function of x
     
-    def __init__(self,N):
+    def __init__(self,N,xs):
         super().__init__()
-        self.cs, self.log_ks,self.log_As  = initialize_circbernoulli(N)
+        self.cs, self.log_ks,self.log_As  = initialize_circbernoulli(N,xs)
     def forward(self,theta): 
         etas = torch.exp((self.log_ks)*torch.cos(theta - self.cs)) + self.log_As
         return etas + 0.2
