@@ -112,6 +112,21 @@ def distortion_ideal(x,encoder,lat_samp=10,tau=0.5):
     h = torch.softmax(r@lam + b,dim=2)
     D = torch.cat([-torch.log(h[i,:,i]) for i in range(bsize)]).mean()
     return D
+
+def distortion_analytical(x,encoder,decoder,r_all):
+    #Logit r|x
+    eta = encoder(x)
+    bsize,N = eta.shape
+    p_r_x = torch.exp((eta@r_all) - (torch.log( 1 + torch.exp(eta))).sum(dim=1)[:,None])
+    mu_dec,log_sigma = decoder(r_all.transpose(0,1)[:,None,:])
+    sigma2_dec = torch.exp(2*log_sigma)
+    inv_sigma2_dec = 1/sigma2_dec
+    mp = mu_dec*inv_sigma2_dec
+    logq_x_r = -0.5*(x**2)*inv_sigma2_dec + x*mp - 0.5*mu_dec*mp -\
+    0.5*torch.log(2*np.pi*sigma2_dec)
+    D = -((p_r_x*logq_x_r).sum(dim=1)).mean()
+    return D
+
 ##
 #IId bernoulli prior
 def rate_iidBernoulli(x,encoder,p_q):
