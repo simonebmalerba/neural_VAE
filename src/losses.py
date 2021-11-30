@@ -8,6 +8,7 @@ import torch
 import torch.nn.functional as F
 import numpy as np
 import scipy.special
+import math
 import itertools
 from src.encoders_decoders import *
 # %%
@@ -117,7 +118,26 @@ def distortion_ideal(x,encoder,lat_samp=10,tau=0.5):
     D = torch.cat([-torch.log(h[i,:,i]) for i in range(bsize)]).mean()
     return D
 
-#NO SBAGLIATA:GUARDARE NOTEBOOK
+#Modified Bessel function (to compute distortion)
+
+class ModifiedBessel(torch.autograd.Function):
+    @staticmethod
+    def forward(ctx, k, nu):
+        ctx._nu = nu
+        ctx.save_for_backward(k)
+        return torch.from_numpy(scipy.special.iv(nu, k.detach().numpy()))
+    @staticmethod
+    def backward(ctx, grad_out):
+        k, = ctx.saved_tensors
+        nu = ctx._nu
+        
+        return 0.5* grad_out *(ModifiedBessel.apply(k, nu - 1.0)+ModifiedBessel.apply(k, nu + 1.0)), None
+
+modified_bessel = ModifiedBessel.apply
+
+
+#Distortion circular
+
 def distortion_circular(x,encoder,decoder,lat_samp=10,tau=0.5):
     #Logit r|x
     l_r_x = encoder(x)
@@ -125,10 +145,10 @@ def distortion_circular(x,encoder,decoder,lat_samp=10,tau=0.5):
     #ALERT: Gumbel Softmax trick (TO DEEPEN ALSO FOR THE THESIS)
     eps = torch.rand(bsize,lat_samp,N)
     r = torch.sigmoid((torch.log(eps) - torch.log(1-eps) + l_r_x[:,None,:])/tau)
-    mu_dec,sigma2_dec = decoder(r)
-    k = (1/sigma2_dec).detach()
-    mp = mu_dec*k
-    logq_x_r = k*torch.cos(x-mu_dec) - torch.log(2*torch.as_tensor(math.pi)) - torch.log(scipy.special.iv(0,k))
+    mu_dec,log_k = decoder(r)
+    #log_k =2.29*torch.ones(1)
+    #k = 1/sigma2_dec
+    logq_x_r = torch.exp(log_k)*torch.cos(x-mu_dec) - torch.log(modified_bessel(torch.exp(log_k),0)) - torch.log(2*torch.as_tensor(math.pi))
     D = -logq_x_r.mean()
     return D
 
