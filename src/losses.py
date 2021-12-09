@@ -152,6 +152,33 @@ def distortion_circular(x,encoder,decoder,lat_samp=10,tau=0.5):
     D = -logq_x_r.mean()
     return D
 
+#distortion analytical
+
+ 
+def distortion_analytical_linear(x,encoder,decoder,r_all):
+    #Logit r|x
+    eta = encoder(x)
+    bsize,N = eta.shape
+    p_r_x = torch.exp((eta@r_all) - (torch.log( 1 + torch.exp(eta))).sum(dim=1)[:,None])
+    mu_dec,log_sigma = decoder(r_all.transpose(0,1)[:,None,:])
+    sigma2_dec = torch.exp(2*log_sigma)
+    inv_sigma2_dec = 1/sigma2_dec
+    mp = mu_dec*inv_sigma2_dec
+    logq_x_r = -0.5*(x**2)*inv_sigma2_dec + x*mp - 0.5*mu_dec*mp -\
+    0.5*torch.log(2*np.pi*sigma2_dec)
+    D = -((p_r_x*logq_x_r).sum(dim=1)).mean()
+    return D
+
+def distortion_analytical_circular(x,encoder,decoder,r_all):
+    #PROBLEMS
+    eta = encoder(x)
+    bsize,N = eta.shape
+    p_r_x = torch.exp((eta@r_all) - (torch.log( 1 + torch.exp(eta))).sum(dim=1)[:,None])
+    mu_dec,log_k = decoder(r_all.transpose(0,1)[:,None,:])
+    logq_x_r = torch.exp(log_k)*torch.cos(x-mu_dec) - torch.log(modified_bessel(torch.exp(log_k),0)) - torch.log(2*torch.as_tensor(math.pi))
+    D = -((p_r_x*logq_x_r).sum(dim=1)).mean()
+    return D
+
 ##
 #IId bernoulli prior
 def rate_iidBernoulli(x,encoder,p_q):
