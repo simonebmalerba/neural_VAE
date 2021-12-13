@@ -6,7 +6,6 @@ import numpy
 from sklearn import cluster
 import pandas as pd
 import matplotlib.pyplot as plt
-<<<<<<< HEAD
 plt.rcParams.update({'font.size': 14})
 
 #%%
@@ -14,7 +13,6 @@ def save_model():
     return
 
 
-=======
 import math
 import itertools
 import scipy.stats
@@ -222,7 +220,6 @@ def generative_model_lin(rate, dec):
     x_samples = torch.squeeze(x_samples)
 
     return x_samples
->>>>>>> origin/Aurora_Ising
 #%%
 def encoder_plots(encoder,x_fine,lat_samp = 30):
     with torch.no_grad():
