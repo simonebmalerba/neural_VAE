@@ -48,12 +48,30 @@ def initialize_bernoulli_params_mu(N,x_min,x_max,xs,w):
     As = torch.nn.Parameter(torch.ones(N)[None,:])
     return cs,log_sigmas,As
 
+<<<<<<< HEAD
 def initialize_circbernoulli(N):
     cs = torch.nn.Parameter(torch.arange(0,2*np.pi,2*np.pi/N)[None,0:N])
     sigmas = (torch.ones(N)*2*np.pi/(5*N))[None,:]
     log_ks = torch.nn.Parameter(torch.log(1/sigmas))
     As = torch.nn.Parameter(torch.exp(-torch.exp(log_ks))*torch.ones(N)[None,:])
     return cs,log_ks,As
+=======
+
+def initialize_circbernoulli(N,xs):
+    kmeans = cluster.KMeans(n_clusters=N, init='random',
+                        n_init=10, max_iter=10, random_state=2)
+    C = kmeans.fit_predict(xs)
+    centers = kmeans.cluster_centers_
+    cs = torch.nn.Parameter(torch.Tensor(centers).transpose(0,1))
+
+
+    #cs = torch.nn.Parameter(torch.arange(-np.pi,np.pi,2*np.pi/N)[None,0:N])
+    sigmas = (torch.ones(N)*2*np.pi/(2*N))[None,:]
+    log_ks = torch.nn.Parameter(torch.log(1/sigmas))
+    log_As = torch.nn.Parameter(torch.log((torch.exp(-torch.exp(log_ks))*torch.ones(N)[None,:])))
+    #As = torch.nn.Parameter(torch.ones(N)[None,:])
+    return cs,log_ks,log_As
+>>>>>>> origin/Aurora_Ising
 
 #ENCODER DEFINITION  
 class CategoricalEncoder(torch.nn.Module):
@@ -84,15 +102,52 @@ class BernoulliEncoder(torch.nn.Module):
     def forward(self,x):
         # x has shape [bsize_dim,x_dim], c,log_sigma,A has shape [x_dim, N]
         inv_sigmas = 0.5*torch.exp(-2*self.log_sigmas)
-        etas = -(x**2)@inv_sigmas
+        etas1 = -(x**2)@inv_sigmas
         etas2 = + 2*x@((self.cs*inv_sigmas))
         etas3 = - (self.cs**2)*inv_sigmas + torch.log(self.As)
-        return etas + etas2 + etas3
+        return etas1 + etas2 + etas3 + 0.2
 
     def sample(self,x,nsamples):
         p_r_x = torch.distributions.bernoulli.Bernoulli(logits = self.forward(x))
         r = p_r_x.sample((nsamples,)).transpose(0,1)
         return r
+
+class BernoulliEncoderLinPars(torch.nn.Module):
+    # Encoder returning for N neurons their unnormalized probabilities of being active (i.e. logits),as 
+    # a quadratic function of x
+    #Same as BernoulliEncoder, but different parametrization of the parameters: alfa, beta, gamma
+    def __init__(self,N,x_min,x_max,xs):
+        super().__init__()
+        cs, log_sigmas,As  = initialize_bernoulli_params(N,x_min,x_max,xs)
+        inv_sigmas = 0.5*torch.exp(-2*log_sigmas)
+        self.logalpha = torch.nn.Parameter(torch.log(inv_sigmas))
+        self.beta = torch.nn.Parameter(2*cs*inv_sigmas)
+        self.gamma = torch.nn.Parameter(- (cs**2)*inv_sigmas + torch.log(As))
+    def forward(self,x):
+        # x has shape [bsize_dim,x_dim], c,log_sigma,A has shape [x_dim, N]
+        eta = -(x**2)@torch.exp(self.logalpha) +  x@self.beta + self.gamma
+        
+        return eta
+    def sample(self,x,nsamples):
+        p_r_x = torch.distributions.bernoulli.Bernoulli(logits = self.forward(x))
+        r = p_r_x.sample((nsamples,)).transpose(0,1)
+        return r
+
+class CircularBernoulliEncoder(torch.nn.Module):
+    # Encoder returning for N neurons their unnormalized probabilities of being active (i.e. logits),as 
+    # a quadratic function of x
+    
+    def __init__(self,N,xs):
+        super().__init__()
+        self.cs, self.log_ks,self.log_As  = initialize_circbernoulli(N,xs)
+    def forward(self,theta): 
+        etas = torch.exp((self.log_ks)*torch.cos(theta - self.cs)) + self.log_As
+        return etas + 0.2
+    def sample(self,theta,nsamples):
+        p_r_x = torch.distributions.bernoulli.Bernoulli(logits = self.forward(theta))
+        r = p_r_x.sample((nsamples,)).transpose(0,1)
+        return r
+
 
 
 class BernoulliEncoderLinPars(torch.nn.Module):
@@ -248,5 +303,26 @@ class GaussianDecoder_orig(torch.nn.Module):
 
 
 
+
+
+class MLPDecoder_circ(torch.nn.Module):
+    def __init__(self,N,M):
+        super().__init__()
+        self.hidden = torch.nn.Linear(N,M)
+        self.f = torch.nn.ReLU()
+        self.w = torch.nn.Linear(M,2)
+    def forward(self,r):
+        H = self.f(self.hidden(r))
+        mu,log_k = torch.split(self.w(H),1,dim=2)
+        #sigma2 = torch.exp(-2*log_sigma)
+        return torch.squeeze(mu),torch.squeeze(log_k)
+    def sample(self,r,dec_samples):
+        mu_dec,log_k_dec = self.forward(r)
+        #Terrible hack, we should find a way to deal with the rare cases
+        # of σ^2 <0
+        #log_k_dec[log_k_dec<0] = torch.sqrt(log_k_dec[log_k_dec<0]**2)
+        q_x_r = torch.distributions.von_mises.VonMises(mu_dec, torch.exp(log_k_dec))
+        x_dec = q_x_r.sample((dec_samples,))
+        return x_dec
 
 # %%

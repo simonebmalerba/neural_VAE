@@ -1,7 +1,15 @@
+
+
+
+
 #%%
+
 import torch
 import torch.nn.functional as F
 import numpy as np
+import scipy.special
+import math
+import itertools
 from src.encoders_decoders import *
 import itertools
 import random
@@ -90,7 +98,7 @@ def distortion_gaussian(x,encoder,decoder,lat_samp=10,tau=0.5):
     #Logit r|x
     l_r_x = encoder(x)
     bsize,N = l_r_x.shape
-    #ALERT: Gumbel Softmax trick
+    #ALERT: Gumbel Softmax trick (TO DEEPEN ALSO FOR THE THESIS)
     eps = torch.rand(bsize,lat_samp,N)
     r = torch.sigmoid((torch.log(eps) - torch.log(1-eps) + l_r_x[:,None,:])/tau)
     mu_dec,log_sigma = decoder(r)
@@ -113,7 +121,44 @@ def distortion_ideal(x,encoder,lat_samp=10,tau=0.5):
     D = torch.cat([-torch.log(h[i,:,i]) for i in range(bsize)]).mean()
     return D
 
-def distortion_analytical(x,encoder,decoder,r_all):
+#Modified Bessel function (to compute distortion)
+
+class ModifiedBessel(torch.autograd.Function):
+    @staticmethod
+    def forward(ctx, k, nu):
+        ctx._nu = nu
+        ctx.save_for_backward(k)
+        return torch.from_numpy(scipy.special.iv(nu, k.detach().numpy()))
+    @staticmethod
+    def backward(ctx, grad_out):
+        k, = ctx.saved_tensors
+        nu = ctx._nu
+        
+        return 0.5* grad_out *(ModifiedBessel.apply(k, nu - 1.0)+ModifiedBessel.apply(k, nu + 1.0)), None
+
+modified_bessel = ModifiedBessel.apply
+
+
+#Distortion circular
+
+def distortion_circular(x,encoder,decoder,lat_samp=10,tau=0.5):
+    #Logit r|x
+    l_r_x = encoder(x)
+    bsize,N = l_r_x.shape
+    #ALERT: Gumbel Softmax trick (TO DEEPEN ALSO FOR THE THESIS)
+    eps = torch.rand(bsize,lat_samp,N)
+    r = torch.sigmoid((torch.log(eps) - torch.log(1-eps) + l_r_x[:,None,:])/tau)
+    mu_dec,log_k = decoder(r)
+    #log_k =2.29*torch.ones(1)
+    #k = 1/sigma2_dec
+    logq_x_r = torch.exp(log_k)*torch.cos(x-mu_dec) - torch.log(modified_bessel(torch.exp(log_k),0)) - torch.log(2*torch.as_tensor(math.pi))
+    D = -logq_x_r.mean()
+    return D
+
+#distortion analytical
+
+ 
+def distortion_analytical_linear(x,encoder,decoder,r_all):
     #Logit r|x
     eta = encoder(x)
     bsize,N = eta.shape
@@ -124,6 +169,16 @@ def distortion_analytical(x,encoder,decoder,r_all):
     mp = mu_dec*inv_sigma2_dec
     logq_x_r = -0.5*(x**2)*inv_sigma2_dec + x*mp - 0.5*mu_dec*mp -\
     0.5*torch.log(2*np.pi*sigma2_dec)
+    D = -((p_r_x*logq_x_r).sum(dim=1)).mean()
+    return D
+
+def distortion_analytical_circular(x,encoder,decoder,r_all):
+    #PROBLEMS
+    eta = encoder(x)
+    bsize,N = eta.shape
+    p_r_x = torch.exp((eta@r_all) - (torch.log( 1 + torch.exp(eta))).sum(dim=1)[:,None])
+    mu_dec,log_k = decoder(r_all.transpose(0,1)[:,None,:])
+    logq_x_r = torch.exp(log_k)*torch.cos(x-mu_dec) - torch.log(modified_bessel(torch.exp(log_k),0)) - torch.log(2*torch.as_tensor(math.pi))
     D = -((p_r_x*logq_x_r).sum(dim=1)).mean()
     return D
 
@@ -144,6 +199,17 @@ def rate_vampBernoullif(x,encoder,x_k):
     R = -torch.logsumexp(-KLs-np.log(K),dim=1).mean()
     return R
     
+
+
+def rate_ising3(x,encoder,h,J):
+    eta = encoder(x)
+    r1 = np.asarray(list(itertools.product([0, 1], repeat=N)))
+    r = torch.tensor(r1).transpose(0,1).type(torch.float)
+    p_r_x = torch.exp(eta@r - (torch.log( 1 + torch.exp(eta))).sum(dim=1)[:,None])
+    log_ratio = ((eta-h0)@r - (r*(J0@r)).sum(dim=0, keepdim=True) - (torch.log(1+torch.exp(eta))).sum(dim=1)[:,None])
+    logz = torch.log((torch.exp((h0@r) + (r*(J0@r)).sum(dim=0, keepdim=True))).sum(dim=1))
+
+    return ((p_r_x)*(log_ratio)).sum(dim=1).mean() + logz
 
 # %%
 class rate_bernoulli(torch.nn.Module):
@@ -176,8 +242,8 @@ class rate_ising(torch.nn.Module):
         self.h = torch.nn.Parameter(-1*torch.ones(N)[None,:])
         #Initialization of J, NxN matrix. Symmetric and with 0 diagonal.
         #Remember to register the hook for clipping the gradient of diagonal to 0
-        W = np.sqrt(1/N)*torch.randn(N,N)
-        J = W*W.transpose(0,1)
+        W = np.sqrt(1/N)*torch.randn(N,N) 
+        J = W*W.transpose(0,1) 
         J.fill_diagonal_(0)
         self.J = torch.nn.Parameter(J)
         #All binary patterns: Nx2^N
@@ -197,6 +263,24 @@ class rate_ising(torch.nn.Module):
         logZ = torch.logsumexp((self.h@self.r_all + (self.r_all*(self.J@self.r_all)).sum(dim=0)),1)
         R = (eta_h_r - r_J_r - logZ1 + logZ).mean()
         return R
+
+class rate_ISING(torch.nn.Module):
+    def __init__(self):
+        super().__init__()
+        N = 10
+        h0 = torch.zeros((1,N)).type(torch.float)
+        J0 = torch.eye(N).type(torch.float)
+        self.h = torch.nn.Parameter(h0)
+        self.J = torch.nn.Parameter(J0)
+    def forward(self,x):
+        eta = enc(x) 
+        r1 = np.asarray(list(itertools.product([0, 1], repeat=N)))
+        r = torch.tensor(r1).transpose(0,1).type(torch.float)
+        p_r_x = torch.exp(eta@r - (torch.log( 1 + torch.exp(eta))).sum(dim=1)[:,None])
+        log_ratio = ((eta-self.h)@r - (r*(self.J@r)).sum(dim=0, keepdim=True) - (torch.log(1+torch.exp(eta))).sum(dim=1)[:,None])
+        logz = torch.log((torch.exp((self.h@r) + (r*(self.J@r)).sum(dim=0, keepdim=True))).sum(dim=1))
+        
+        return ((p_r_x)*(log_ratio)).sum(dim=1).mean() + logz
 # %%
 def MSE_montecarlo(x,encoder,decoder,lat_samp =10,dec_samp=10):
     r = encoder.sample(x,lat_samp)

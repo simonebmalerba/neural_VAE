@@ -15,14 +15,23 @@ Translated from Ulisse's Matlab code.
 #%%
 import numpy as np
 import ctypes
+from ctypes import util
 import os 
 #from joblib import Parallel, delayed
 #import multiprocessing
+
+#os.add_dll_directory("C:/Users/auror/New_VAES/VAEs/ising_python_ulisse")
+os.chdir("C:/Users/auror/New_VAES/VAEs/ising_python_ulisse")
 print(os.getcwd())
-MCspins = ctypes.CDLL('./MCspins.so')
+MCspins = ctypes.WinDLL('./MCspins.dll') 
 MCspinsPK = ctypes.CDLL('./MCspinsPK.so')
 MCspinsPKbytype = ctypes.CDLL('./MCspinsPKbytype.so')
 MCspinsPKbytypeRaster = ctypes.CDLL('./MCspinsPKbytypeRaster.so')
+
+#MCspins = ctypes.CDLL('/Users/auror/New_VAES/VAEs/ising_python_ulisse/MCspins.so') 
+#MCspinsPK = ctypes.CDLL('/Users/auror/New_VAES/VAEs/ising_python_ulisse/MCspinsPK.so')
+#MCspinsPKbytype = ctypes.CDLL('/Users/auror/New_VAE S/VAEs/ising_python_ulisse/MCspinsPKbytype.so')
+#MCspinsPKbytypeRaster = ctypes.CDLL('/Users/auror/New_VAES/VAEs/ising_python_ulisse/MCspinsPKbytypeRaster.so')
 #MCspins.pyMC.restype = ctypes.POINTER(ctypes.c_double)
 #%%
 def epsilon(gradient, B, D, chiEta):
