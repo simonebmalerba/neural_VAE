@@ -210,9 +210,6 @@ class MLPDecoder(torch.nn.Module):
     def sample(self,r,dec_samples):
         mu_dec,log_sigma = self.forward(r)
         sigma2_dec = torch.exp(2*log_sigma)
-        #Terrible hack, we should find a way to deal with the rare cases
-        # of σ^2 <0
-        #sigma2_dec[sigma2_dec<0] = torch.sqrt(sigma2_dec[sigma2_dec<0]**2)
         q_x_r = torch.distributions.normal.Normal(mu_dec,torch.sqrt(sigma2_dec))
         x_dec = q_x_r.sample((dec_samples,))
         return x_dec
@@ -235,9 +232,6 @@ class MLPDecoder2n(torch.nn.Module):
     def sample(self,r,dec_samples):
         mu_dec,log_sigma = self.forward(r)
         sigma2_dec = torch.exp(2*log_sigma)
-        #Terrible hack, we should find a way to deal with the rare cases
-        # of σ^2 <0
-        #sigma2_dec[sigma2_dec<0] = torch.sqrt(sigma2_dec[sigma2_dec<0]**2)
         q_x_r = torch.distributions.normal.Normal(mu_dec,torch.sqrt(sigma2_dec))
         x_dec = q_x_r.sample((dec_samples,))
         return x_dec
