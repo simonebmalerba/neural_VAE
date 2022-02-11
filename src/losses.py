@@ -168,7 +168,7 @@ def distortion_analytical_linear(x,encoder,decoder,r_all):
     inv_sigma2_dec = 1/sigma2_dec
     mp = mu_dec*inv_sigma2_dec
     logq_x_r = -0.5*(x**2)*inv_sigma2_dec + x*mp - 0.5*mu_dec*mp -\
-    0.5*torch.log(2*np.pi*sigma2_dec)
+        0.5*torch.log(2*np.pi*sigma2_dec)
     D = -((p_r_x*logq_x_r).sum(dim=1)).mean()
     return D
 
@@ -264,23 +264,6 @@ class rate_ising(torch.nn.Module):
         R = (eta_h_r - r_J_r - logZ1 + logZ).mean()
         return R
 
-class rate_ISING(torch.nn.Module):
-    def __init__(self):
-        super().__init__()
-        N = 10
-        h0 = torch.zeros((1,N)).type(torch.float)
-        J0 = torch.eye(N).type(torch.float)
-        self.h = torch.nn.Parameter(h0)
-        self.J = torch.nn.Parameter(J0)
-    def forward(self,x):
-        eta = enc(x) 
-        r1 = np.asarray(list(itertools.product([0, 1], repeat=N)))
-        r = torch.tensor(r1).transpose(0,1).type(torch.float)
-        p_r_x = torch.exp(eta@r - (torch.log( 1 + torch.exp(eta))).sum(dim=1)[:,None])
-        log_ratio = ((eta-self.h)@r - (r*(self.J@r)).sum(dim=0, keepdim=True) - (torch.log(1+torch.exp(eta))).sum(dim=1)[:,None])
-        logz = torch.log((torch.exp((self.h@r) + (r*(self.J@r)).sum(dim=0, keepdim=True))).sum(dim=1))
-        
-        return ((p_r_x)*(log_ratio)).sum(dim=1).mean() + logz
 # %%
 def MSE_montecarlo(x,encoder,decoder,lat_samp =10,dec_samp=10):
     r = encoder.sample(x,lat_samp)

@@ -102,7 +102,7 @@ class BernoulliEncoder(torch.nn.Module):
         etas1 = -(x**2)@inv_sigmas
         etas2 = + 2*x@((self.cs*inv_sigmas))
         etas3 = - (self.cs**2)*inv_sigmas + torch.log(self.As)
-        return etas1 + etas2 + etas3 + 0.2
+        return etas1 + etas2 + etas3
 
     def sample(self,x,nsamples):
         p_r_x = torch.distributions.bernoulli.Bernoulli(logits = self.forward(x))
@@ -112,7 +112,7 @@ class BernoulliEncoder(torch.nn.Module):
 class BernoulliEncoderLinPars(torch.nn.Module):
     # Encoder returning for N neurons their unnormalized probabilities of being active (i.e. logits),as 
     # a quadratic function of x
-    #Same as BernoulliEncoder, but different parametrization of the parameters: alfa, beta, gamma
+    #Same as BernoulliEncoder, but different parametrization of the natural parameters: alfa, beta, gamma
     def __init__(self,N,x_min,x_max,xs):
         super().__init__()
         cs, log_sigmas,As  = initialize_bernoulli_params(N,x_min,x_max,xs)
