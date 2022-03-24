@@ -16,17 +16,21 @@ def initialize_categorical_params(c0,sigma0,q0):
     torch.log(F.softmax(q0,dim=1)))
     return a,b,c
 
-def initialize_bernoulli_params(N,x_min,x_max,xs):
-    #Initialize parameters arranging centers equally spaced in the range x_min x_max,
-    # and the width as 5 times the spacing between centers
-    #initialize cs using kmeans:
+def initialize_bernoulli_params(N,x_min,x_max,xs,w=2):
+    #Initalize preferred positions with kmean algorithm on the data points,
+    #initalize sigmas to be proprotional (factor of w) to spacing between centers
     kmeans = cluster.KMeans(n_clusters=N, init='random',
                         n_init=10, max_iter=10, random_state=2)
     C = kmeans.fit_predict(xs)
     centers = kmeans.cluster_centers_
     cs = torch.nn.Parameter(torch.Tensor(centers).transpose(0,1))
     #cs = torch.nn.Parameter(torch.arange(x_min,x_max,(x_max-x_min)/N)[None,0:N])
-    log_sigmas = torch.nn.Parameter(torch.log(torch.ones(N)*(x_max-x_min)/N)[None,:])
+    cs_sorted,indices = cs.sort(dim=1)
+    indices = torch.squeeze(indices)
+    idr = np.argsort(indices)
+    deltac = torch.diff(cs_sorted)
+    deltac = torch.cat((deltac[0,:],deltac[:,-1]))
+    log_sigmas = torch.nn.Parameter(torch.log(torch.ones(N)*torch.sqrt(w*deltac))[None,idr])
     As = torch.nn.Parameter(torch.ones(N)[None,:])
     return cs,log_sigmas,As
 

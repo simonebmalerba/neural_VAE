@@ -217,8 +217,13 @@ class rate_bernoulli(torch.nn.Module):
         super().__init__()
         #Magnetization 1xN
         self.h = torch.nn.Parameter(-1*torch.ones(N)[None,:])
+        r_all = np.asarray(list(itertools.product([0, 1], repeat=N)))
+        self.r_all = torch.tensor(r_all).transpose(0,1).type(torch.float)
     def forward(self,enc,x):
         eta = enc(x)
+        KLs = (torch.sigmoid(eta)*(F.logsigmoid(eta) - F.logsigmoid(self.h)) + 
+            torch.sigmoid(-eta)*(F.logsigmoid(-eta) - F.logsigmoid(-self.h))).sum(dim=1)
+        R = KLs.mean()
         return R
         
 class rate_vampBernoulli(torch.nn.Module):
