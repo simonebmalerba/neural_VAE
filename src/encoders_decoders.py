@@ -16,7 +16,7 @@ def initialize_categorical_params(c0,sigma0,q0):
     torch.log(F.softmax(q0,dim=1)))
     return a,b,c
 
-def initialize_bernoulli_params(N,x_min,x_max,xs,w=2):
+def initialize_bernoulli_params(N,x_min,x_max,xs,w=1):
     #Initalize preferred positions with kmean algorithm on the data points,
     #initalize sigmas to be proprotional (factor of w) to spacing between centers
     kmeans = cluster.KMeans(n_clusters=N, init='random',
@@ -97,9 +97,9 @@ class CategoricalEncoder(torch.nn.Module):
 class BernoulliEncoder(torch.nn.Module):
     # Encoder returning for N neurons their unnormalized probabilities of being active (i.e. logits),as 
     # a quadratic function of x
-    def __init__(self,N,x_min,x_max,xs):
+    def __init__(self,N,x_min,x_max,xs,w=1):
         super().__init__()
-        self.cs, self.log_sigmas,self.As  = initialize_bernoulli_params(N,x_min,x_max,xs)
+        self.cs, self.log_sigmas,self.As  = initialize_bernoulli_params(N,x_min,x_max,xs,w=w)
     def forward(self,x):
         # x has shape [bsize_dim,x_dim], c,log_sigma,A has shape [x_dim, N]
         inv_sigmas = 0.5*torch.exp(-2*self.log_sigmas)
