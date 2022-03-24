@@ -73,7 +73,7 @@ for Rt in RtVec:
     q.J.register_hook(lambda grad: grad.fill_diagonal_(0))
     params =   list(enc.parameters()) + list(dec.parameters())  + list(q.parameters())
     opt = torch.optim.Adam(params,lr)
-    history = train_Rt(enc,dec,q,x_data,opt,Rt,N_EPOCHS = 10,lr_b = 0.1)
+    history = train_Rt(enc,dec,q,x_data,opt,Rt,N_EPOCHS = N_EPOCHS,lr_b = 0.1)
     resume[Rt] = {'encode' :enc.state_dict(),
                 'decoder' : dec.state_dict(),
                 'q'      : q.state_dict(),
