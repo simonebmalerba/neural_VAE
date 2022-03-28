@@ -46,7 +46,7 @@ def train_Rt(enc,dec,q,x_data,opt,Rt,N_EPOCHS=500,lr_b = 0.1):
     return history
 #%%
 # Architecture parameters
-N=12     #Number of neurons
+N= 10     #Number of neurons
 M = 100  #Decoder neurons (D NN)
 #Training parameters
 N_EPOCHS = 3000
@@ -54,7 +54,7 @@ N_SAMPLES =5000
 BATCH_SIZE = 100
 lr = 1e-4
 #Generate dataset
-p_x = torch.distributions.log_normal.LogNormal(1,1) 
+p_x = torch.distributions.normal.Normal(0,5) 
 x_samples = p_x.sample((N_SAMPLES,))[:,None]     #Points used for model train
 x_test = p_x.sample((40000,))[:,None]            #Points used for model test
 x_tsorted,_ = x_test.sort(dim=0)
@@ -66,7 +66,7 @@ x_data = torch.utils.data.DataLoader(x_samples,batch_size=BATCH_SIZE)
 #Initialize model parameters
 #Iterate over different R^*
 resume = {}
-RtVec = np.linspace(0.3,2.5,num=30)
+RtVec = np.linspace(0.3,2.5,num=20)
 #RtVec = [0.5,1]
 for Rt in RtVec:
     print(f"Rate = {Rt}")
