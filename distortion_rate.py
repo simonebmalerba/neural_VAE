@@ -6,6 +6,7 @@ import torch.nn.functional as F
 import pickle
 import itertools
 import random
+import os
 from src.encoders_decoders import *
 from src.losses import *
 from src.useful_functions import *
@@ -45,11 +46,11 @@ def train_Rt(enc,dec,q,x_data,opt,Rt,N_EPOCHS=500,lr_b = 0.1):
     return history
 #%%
 # Architecture parameters
-N=10     #Number of neurons
+N=12     #Number of neurons
 M = 100  #Decoder neurons (D NN)
 #Training parameters
-N_EPOCHS = 2000
-N_SAMPLES =10000
+N_EPOCHS = 3000
+N_SAMPLES =5000
 BATCH_SIZE = 100
 lr = 1e-4
 #Generate dataset
@@ -66,7 +67,9 @@ x_data = torch.utils.data.DataLoader(x_samples,batch_size=BATCH_SIZE)
 #Iterate over different R^*
 resume = {}
 RtVec = np.linspace(0.3,2.5,num=30)
+#RtVec = [0.5,1]
 for Rt in RtVec:
+    print(f"Rate = {Rt}")
     enc = BernoulliEncoder(N,x_min-1,x_max+1,x_sorted)
     dec = MLPDecoder2n(N,M)     #Decoder
     q = rate_ising(N)           #Prior
@@ -80,7 +83,7 @@ for Rt in RtVec:
                 'history' : history,
                 'x_test'  : x_tsorted
     }
-PATH = os.getcwd() + "/data/LN_prior.pt"
+PATH = os.getcwd() + "/data/LN_prior_N=12_q=Ising.pt"
 torch.save(resume, PATH)
 # %%
 
