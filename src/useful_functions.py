@@ -255,7 +255,7 @@ def decoder_plots(encoder,decoder,x_fine,lat_samp = 30):
         axs[2].set_ylabel('MSE')
         axs[2].set_title(f'MSE: {meanMSE:.2f}')
         axs[2].plot()
-    return fig,axs
+    return fig,axs,meanMSE.item()
 ##
 def training_plots(loss,distortion,rate,beta):
     L = len(loss)
