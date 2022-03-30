@@ -52,9 +52,9 @@ M = 100  #Decoder neurons (D NN)
 N_EPOCHS = 3000
 N_SAMPLES =5000
 BATCH_SIZE = 100
-lr = 1e-4
+#lr = 1e-4
 #Generate dataset
-p_x = torch.distributions.normal.Normal(0,5) 
+p_x = torch.distributions.log_normal.LogNormal(1,1) 
 x_samples = p_x.sample((N_SAMPLES,))[:,None]     #Points used for model train
 x_test = p_x.sample((40000,))[:,None]            #Points used for model test
 x_tsorted,_ = x_test.sort(dim=0)
@@ -66,10 +66,14 @@ x_data = torch.utils.data.DataLoader(x_samples,batch_size=BATCH_SIZE)
 #Initialize model parameters
 #Iterate over different R^*
 resume = {}
-RtVec = np.linspace(0.3,2.5,num=20)
+RtVec = np.linspace(0.3,2.45,num=15)
 #RtVec = [0.5,1]
 for Rt in RtVec:
-    print(f"Rate = {Rt}")
+    if Rt < 1.:
+        lr = 1e-4
+    else:
+        lr=1e-2
+    print(f"Rate = {Rt}||lr = {lr}")
     enc = BernoulliEncoder(N,x_min-1,x_max+1,x_sorted)
     dec = MLPDecoder2n(N,M)     #Decoder
     q = rate_ising(N)           #Prior
@@ -83,7 +87,7 @@ for Rt in RtVec:
                 'history' : history,
                 'x_test'  : x_tsorted
     }
-PATH = os.getcwd() + "/data/LN_prior_N=12_q=Ising.pt"
+PATH = os.getcwd() + "/data/LN_prior_N=10_q=Ising.pt"
 torch.save(resume, PATH)
 # %%
 
