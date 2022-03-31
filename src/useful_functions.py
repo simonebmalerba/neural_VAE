@@ -224,13 +224,18 @@ def encoder_plots(encoder,x_fine,lat_samp = 30):
         #Plot tuning curves and mean number of spikes of encoder
         r = encoder.sample(x_fine,lat_samp)
         #mu_dec,log_sigma_dec = decoder(r)
-        fig,axs = plt.subplots(ncols=2,nrows=1,figsize=(10,5))
+        fig,axs = plt.subplots(ncols=3,nrows=1,figsize=(15,5))
         axs[0].plot(x_fine,torch.sigmoid(encoder(x_fine)).detach())
         axs[0].set_xlabel('x')
         axs[0].set_ylabel('p(r=1|x)')
         axs[1].plot(x_fine,r.sum(dim=2).mean(dim=1))
         axs[1].set_xlabel('x')
         axs[1].set_ylabel('# spikes')
+        _,indices = encoder.cs.sort(dim=1)
+        indices = torch.squeeze(indices)
+        axs[2].scatter(encoder.cs[:,indices], torch.exp(encoder.log_sigmas[:,indices]))
+        axs[2].set_xlabel('cs')
+        axs[2].set_ylabel('sigma')
     return fig,axs
 
 def decoder_plots(encoder,decoder,x_fine,lat_samp = 30):
