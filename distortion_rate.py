@@ -94,7 +94,7 @@ RtVec = np.linspace(0.3,3.0,num=10)
 
 r_list = Parallel(n_jobs=4)(delayed(vary_R)(RtVec) for n in range(N_TRIALS))
 
-PATH = os.getcwd() + "/data/Ising/Normal_0_5/N_prior_N=10_q=Ising_lrs=1_5.pt"
+PATH = os.getcwd() + "/data/N_prior_N=10_q=Ising_lrs=1_5.pt"
 torch.save(r_list, PATH)
 # %%
 
