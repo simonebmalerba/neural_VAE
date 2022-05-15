@@ -90,7 +90,7 @@ p_x = torch.distributions.normal.Normal(0,5)
 # %%
 #Initialize model parameters
 #Iterate over different R^*
-RtVec = np.linspace(0.3,3.0,num=1)
+RtVec = np.linspace(0.3,3.0,num=10)
 
 r_list = Parallel(n_jobs=4)(delayed(vary_R)(RtVec) for n in range(N_TRIALS))
 
