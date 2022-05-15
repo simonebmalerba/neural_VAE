@@ -238,7 +238,7 @@ def encoder_plots(encoder,x_fine,lat_samp = 30):
         axs[2].set_ylabel('sigma')
     return fig,axs
 
-def decoder_plots(encoder,decoder,x_fine,lat_samp = 30):
+def decoder_plots(encoder,decoder,x_fine,lat_samp = 30,root = False):
     #Plot mean square error and mean and variance of the decoder
     with torch.no_grad():
         r = encoder.sample(x_fine,lat_samp)
@@ -246,6 +246,9 @@ def decoder_plots(encoder,decoder,x_fine,lat_samp = 30):
         x_ext = decoder.sample(r,lat_samp)
         mseVec = ((x_ext - x_fine[None,:])**2).mean(dim=(0,2))
         meanMSE = mseVec.mean()
+        if root:
+            mseVec = torch.sqrt(mseVec)
+            meanMSE = torch.sqrt(meanMSE)
         fig,axs = plt.subplots(ncols=3,nrows=1,figsize=(15,5))
         axs[0].plot(x_fine,mu_dec.mean(dim=1))
         axs[0].plot(x_fine,x_fine,label="y=x")
@@ -298,7 +301,8 @@ def generative_model_analytical_plots(q,decoder,p_x,x_fine,indices=None):
         axs[0].plot(x_fine,torch.exp(q_x.log_prob(x_fine)),label= "q(x)")
         axs[0].plot(x_fine,torch.exp(p_x.log_prob(x_fine)),label= "p(x)")
         axs[0].legend()
-        axs[1].imshow(q.J[:,indices][indices,:])
+        im= axs[1].imshow(q.J[:,indices][indices,:])
+        plt.colorbar(im,ax=axs[1],location= "bottom")
         axs[1].set_title('J')
         axs[2].scatter(range(N),q.h[:,indices])
         axs[2].set_title('h')
