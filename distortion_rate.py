@@ -80,7 +80,7 @@ def vary_R(RtVec):
 N= 10     #Number of neurons
 M = 100  #Decoder neurons (D NN)
 #Training parameters
-N_EPOCHS = 10
+N_EPOCHS = 3000
 N_SAMPLES =5000
 BATCH_SIZE = 100
 N_TRIALS = 8 #Different initializations of dataset 
