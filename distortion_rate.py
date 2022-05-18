@@ -56,7 +56,7 @@ def vary_R(RtVec):
     x_min,x_max = x_sorted[0,:].item(),x_sorted[-1,:].item()
     x_data = torch.utils.data.DataLoader(x_samples,batch_size=BATCH_SIZE)
     for Rt in RtVec:
-        if Rt < 1.7:
+        if Rt < 1.5:
             lr = 1e-4
         else:
             lr=1e-3
@@ -86,15 +86,15 @@ BATCH_SIZE = 100
 N_TRIALS = 8 #Different initializations of dataset 
 #lr = 1e-4
 #Define distribution
-p_x = torch.distributions.normal.Normal(0,5)
+p_x = torch.distributions.log_normal.Normal(1,1)
 # %%
 #Initialize model parameters
 #Iterate over different R^*
-RtVec = np.linspace(0.3,3.0,num=10)
+RtVec = np.linspace(0.2,2.4,num=10)
 
 r_list = Parallel(n_jobs=4)(delayed(vary_R)(RtVec) for n in range(N_TRIALS))
 
-PATH = os.getcwd() + "/data/N_prior_N=10_q=Ising_lrs=1_7.pt"
+PATH = os.getcwd() + "/data/LN_prior_N=10_q=Ising_lrs=1_5.pt"
 torch.save(r_list, PATH)
 # %%
 
