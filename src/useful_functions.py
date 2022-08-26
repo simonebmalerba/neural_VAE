@@ -227,7 +227,7 @@ def encoder_plots(encoder,x_fine,lat_samp = 30):
         fig,axs = plt.subplots(ncols=3,nrows=1,figsize=(15,5))
         axs[0].plot(x_fine,torch.sigmoid(encoder(x_fine)).detach())
         axs[0].set_xlabel('x')
-        axs[0].set_ylabel('p(r=1|x)')
+        axs[0].set_ylabel(r"$p(r_i=1|x)$")
         axs[1].plot(x_fine,r.sum(dim=2).mean(dim=1))
         axs[1].set_xlabel('x')
         axs[1].set_ylabel('# spikes')
@@ -263,7 +263,7 @@ def decoder_plots(encoder,decoder,x_fine,lat_samp = 30,root = False):
         axs[2].set_ylabel('MSE')
         axs[2].set_title(f'MSE: {meanMSE:.2f}')
         axs[2].plot()
-    return fig,axs,meanMSE.item()
+    return fig,axs,mseVec
 ##
 def training_plots(loss,distortion,rate,beta):
     L = len(loss)

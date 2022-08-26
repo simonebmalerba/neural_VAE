@@ -181,6 +181,7 @@ def distortion_analytical_circular(x,encoder,decoder,r_all):
     return D
 
 ##
+##RATES
 #IId bernoulli prior
 def rate_iidBernoulli(x,encoder,p_q):
     l_r_x = encoder(x)
