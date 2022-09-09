@@ -50,7 +50,7 @@ def train_Rt(enc,dec,q,x_data,opt,Rt,N_EPOCHS=500,lr_b = 0.1):
 def vary_R(RtVec,x_data):
     resume = {}
     for Rt in RtVec:
-        if Rt < 1.5:
+        if Rt < 1.0:
             lr = 1e-4
         else:
             lr=1e-3
@@ -102,9 +102,9 @@ x_sorted,indices = x_samples.sort(dim=0)
 x_min,x_max = x_sorted[0,:].item(),x_sorted[-1,:].item()
 x_data = torch.utils.data.DataLoader(x_samples,batch_size=BATCH_SIZE)
 
-RtVec = np.linspace(0.2,2.4,num=10)
+RtVec = np.linspace(0.4,2.5,num=10)
 
 r_list = Parallel(n_jobs=4)(delayed(vary_R)(RtVec) for n in range(N_TRIALS))
 
-PATH = os.getcwd() + "/data/Frequency_dist/N=10_q=Ising_lrs=1_1.pt"
+PATH = os.getcwd() + "/data/Frequency_dist/N=10_q=Ising_lrs=1.pt"
 torch.save(r_list, PATH)
