@@ -46,6 +46,29 @@ def train_Rt(enc,dec,q,x_data,opt,Rt,N_EPOCHS=500,lr_b = 0.1):
             f'Distortion: {history["distortion"][-1]}||Beta = {history["beta"][-1]}')
     history["beta"].pop()
     return history
+
+def vary_R(RtVec,x_data):
+    resume = {}
+    for Rt in RtVec:
+        if Rt < 1.5:
+            lr = 1e-4
+        else:
+            lr=1e-3
+        print(f"Rate = {Rt}||lr = {lr}")
+        enc = BernoulliEncoder(N,x_min-1,x_max+1,x_sorted,w=2)
+        dec = MLPDecoder(N,M)     #Decoder
+        q = rate_ising(N)           #Prior
+        q.J.register_hook(lambda grad: grad.fill_diagonal_(0))
+        params =   list(enc.parameters()) + list(dec.parameters())  + list(q.parameters())
+        opt = torch.optim.Adam(params,lr)
+        history = train_Rt(enc,dec,q,x_data,opt,Rt,N_EPOCHS = N_EPOCHS,lr_b = 0.1)
+        resume[Rt] = {'encode' :enc.state_dict(),
+                    'decoder' : dec.state_dict(),
+                    'q'      : q.state_dict(),
+                    'history' : history,
+                    'lr'      :lr
+        }
+    return resume
 #%%
 #Architecture parameters and distributions of stimuli
 N = 10
@@ -78,3 +101,10 @@ x_tsorted,_ = x_test.sort(dim=0)
 x_sorted,indices = x_samples.sort(dim=0)
 x_min,x_max = x_sorted[0,:].item(),x_sorted[-1,:].item()
 x_data = torch.utils.data.DataLoader(x_samples,batch_size=BATCH_SIZE)
+
+RtVec = np.linspace(0.2,2.4,num=10)
+
+r_list = Parallel(n_jobs=4)(delayed(vary_R)(RtVec) for n in range(N_TRIALS))
+
+PATH = os.getcwd() + "/data/Frequency_dist/N=10_q=Ising_lrs=1_1.pt"
+torch.save(r_list, PATH)

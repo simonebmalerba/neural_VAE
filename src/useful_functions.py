@@ -308,3 +308,22 @@ def generative_model_analytical_plots(q,decoder,p_x,x_fine,indices=None):
         axs[2].set_title('h')
     return fig,axs
 # %%
+def mutual_information(enc_,q_,x_test_):
+    eta = enc_(x_test_)
+    bsize,N = eta.shape
+    p_r_x = torch.exp((eta@q_.r_all) - (torch.log( 1 + torch.exp(eta))).sum(dim=1)[:,None]) + 1E-20
+    p_r = p_r_x.mean(dim=0)[None,:]+1E-20
+    I = ((p_r_x * torch.log(p_r_x/p_r)).sum(dim=1)).mean()
+    return I
+
+def mutual_information2(enc_,q_,x_test_):
+    eta = enc_(x_test_)
+    bsize,N = eta.shape
+    p_r_x = torch.exp((eta@q_.r_all) - (torch.log( 1 + torch.exp(eta))).sum(dim=1)[:,None]) + 1E-20
+    p_r = p_r_x.mean(dim=0)[None,:]+1E-20
+    Hp = -(p_r * torch.log(p_r)).sum()
+    Hpx = ((-p_r_x * torch.log(p_r_x)).sum(dim=1)).mean()
+    return Hp,Hpx
+    
+def kl_divergence(logp,logq):
+    return (logp - logq).mean()

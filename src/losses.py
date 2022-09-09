@@ -274,5 +274,10 @@ def MSE_montecarlo(x,encoder,decoder,lat_samp =10,dec_samp=10):
     x_dec = decoder.sample(r,dec_samp)
     mseVec = ((x_dec - x[None,:])**2).mean(dim=(0,2))
     return mseVec.mean()
+def MSE_posterior_mean(x,encoder,decoder,lat_samp =10,dec_samp=10):
+    r = encoder.sample(x,lat_samp)
+    x_dec = decoder(r)[0]
+    mseVec = ((x_dec - x)**2).mean(dim=1)
+    return mseVec.mean()
 # %%
 
