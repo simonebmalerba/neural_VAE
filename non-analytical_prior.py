@@ -77,18 +77,18 @@ N = 10
 M = 100
 #Training parameters.
 #PRE_EPOCHS = 100
-N_EPOCHS = 3
-N_SAMPLES =10000
+N_EPOCHS = 4000
+N_SAMPLES =8000
 lr = 1e-2
 BATCH_SIZE = 256
-N_TRIALS = 1
+N_TRIALS = 4
 #define manually pdf
 f0 = 1.52 #0#
 p = 2.61 #0.84#
 A = 2.4e6/10**(3*p) #0.06#
 density = lambda f :  A/(f0**p + f**p)
 #create bin edges for histogram
-f_bin = torch.logspace(-1, 1,steps=501)
+f_bin = torch.logspace(-1.2, 1.2,steps=1001)
 Df = torch.diff(f_bin)
 fs = f_bin[0:-1] + Df/2
 pf = density(fs)
