@@ -11,6 +11,8 @@ from src.encoders_decoders import *
 from src.losses import *
 from src.useful_functions import *
 from torch.utils.data import DataLoader
+from joblib import Parallel,delayed
+
 # %%
 def train_Rt(enc,dec,q,x_data,opt,Rt,N_EPOCHS=500,lr_b = 0.1):
     #Train parameters of VAE specified in `opt`
@@ -72,14 +74,14 @@ def vary_R(RtVec,x_data):
 #%%
 #Architecture parameters and distributions of stimuli
 N = 10
-K = 5
 M = 100
 #Training parameters.
 #PRE_EPOCHS = 100
-N_EPOCHS = 3000
+N_EPOCHS = 3
 N_SAMPLES =10000
 lr = 1e-2
-BATCH_SIZE = 200
+BATCH_SIZE = 256
+N_TRIALS = 1
 #define manually pdf
 f0 = 1.52 #0#
 p = 2.61 #0.84#
@@ -104,7 +106,8 @@ x_data = torch.utils.data.DataLoader(x_samples,batch_size=BATCH_SIZE)
 
 RtVec = np.linspace(0.4,2.5,num=10)
 
-r_list = Parallel(n_jobs=4)(delayed(vary_R)(RtVec) for n in range(N_TRIALS))
+r_list = Parallel(n_jobs=4)(delayed(vary_R)(RtVec,x_data) for n in range(N_TRIALS))
 
-PATH = os.getcwd() + "/data/Frequency_dist/N=10_q=Ising_lrs=1.pt"
+PATH = os.getcwd() + "/data/freq_dist_N=10_q=Ising_lrs=1.pt"
 torch.save(r_list, PATH)
+# %%

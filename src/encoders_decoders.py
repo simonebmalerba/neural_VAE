@@ -196,7 +196,6 @@ class CircularBernoulliEncoder(torch.nn.Module):
 def initialize_MOG_params(N,x_min,x_max, x):
     #Initialize parameters arranging centers equally spaced in the range x_min x_max,
     # and the width as 5 times the spacing between centers
-
     #Need to perform KMEANS to initialize the mus
     kmeans = cluster.KMeans(n_clusters=N, init='random',
                         n_init=10, max_iter=10, random_state=2)
