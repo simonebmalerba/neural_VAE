@@ -56,7 +56,7 @@ def vary_R(RtVec):
     x_min,x_max = x_sorted[0,:].item(),x_sorted[-1,:].item()
     x_data = torch.utils.data.DataLoader(x_samples,batch_size=BATCH_SIZE)
     for Rt in RtVec:
-        if Rt < 1.0:
+        if Rt < 1.5:
             lr = 1e-4
         else:
             lr=1e-3
@@ -80,7 +80,7 @@ def vary_R(RtVec):
 N= 10     #Number of neurons
 M = 100  #Decoder neurons (D NN)
 #Training parameters
-N_EPOCHS = 8000
+N_EPOCHS = 4000
 N_SAMPLES =5000
 BATCH_SIZE = 128
 N_TRIALS = 4 #Different initializations of dataset 
@@ -93,7 +93,7 @@ p_x = torch.distributions.mixture_same_family.MixtureSameFamily(w,gs)
 # %%
 #Initialize model parameters
 #Iterate over different R^*
-RtVec = np.linspace(0.3,2.5,num=10)
+RtVec = np.linspace(0.5,1.5,num=4)
 
 r_list = Parallel(n_jobs=4)(delayed(vary_R)(RtVec) for n in range(N_TRIALS))
 
