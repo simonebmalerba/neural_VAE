@@ -52,7 +52,7 @@ def train_Rt(enc,dec,q,x_data,opt,Rt,N_EPOCHS=500,lr_b = 0.1):
 def vary_R(RtVec,x_data):
     resume = {}
     for Rt in RtVec:
-        if Rt < 1.0:
+        if Rt < 1.3:
             lr = 1e-4
         else:
             lr=1e-3
@@ -73,15 +73,15 @@ def vary_R(RtVec,x_data):
     return resume
 #%%
 #Architecture parameters and distributions of stimuli
-N = 10
+N = 12
 M = 100
 #Training parameters.
 #PRE_EPOCHS = 100
-N_EPOCHS = 4000
+N_EPOCHS = 5000
 N_SAMPLES =8000
 lr = 1e-2
 BATCH_SIZE = 256
-N_TRIALS = 4
+N_TRIALS = 8
 #define manually pdf
 f0 = 1.52 #0#
 p = 2.61 #0.84#
@@ -104,10 +104,10 @@ x_sorted,indices = x_samples.sort(dim=0)
 x_min,x_max = x_sorted[0,:].item(),x_sorted[-1,:].item()
 x_data = torch.utils.data.DataLoader(x_samples,batch_size=BATCH_SIZE)
 
-RtVec = np.linspace(0.4,2.5,num=10)
+RtVec = np.linspace(0.4,2.7,num=8)
 
-r_list = Parallel(n_jobs=4)(delayed(vary_R)(RtVec,x_data) for n in range(N_TRIALS))
+r_list = Parallel(n_jobs=8)(delayed(vary_R)(RtVec,x_data) for n in range(N_TRIALS))
 
-PATH = os.getcwd() + "/data/freq_dist_N=10_q=Ising_lrs=1.pt"
+PATH = os.getcwd() + "/data/freq_dist_N=12_q=Ising_lrs=1_3.pt"
 torch.save(r_list, PATH)
 # %%
