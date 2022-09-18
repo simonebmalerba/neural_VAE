@@ -57,6 +57,8 @@ def vary_R(RtVec,x_data):
         else:
             lr=1e-3
         print(f"Rate = {Rt}||lr = {lr}")
+        x_samples = fs[d.sample((N_SAMPLES,))[:,None]]
+        x_data = torch.utils.data.DataLoader(x_samples,batch_size=BATCH_SIZE)
         enc = BernoulliEncoder(N,x_min-1,x_max+1,x_sorted,w=2)
         dec = MLPDecoder(N,M)     #Decoder
         q = rate_ising(N)           #Prior
