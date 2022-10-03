@@ -56,7 +56,7 @@ def vary_R(RtVec):
     x_min,x_max = x_sorted[0,:].item(),x_sorted[-1,:].item()
     x_data = torch.utils.data.DataLoader(x_samples,batch_size=BATCH_SIZE)
     for Rt in RtVec:
-        if Rt < 1.5:
+        if Rt < 1.9:
             lr = 1e-4
         else:
             lr=1e-3
@@ -77,27 +77,27 @@ def vary_R(RtVec):
     return resume
 #%%
 # Architecture parameters
-N= 10     #Number of neurons
+N= 12     #Number of neurons
 M = 100  #Decoder neurons (D NN)
 #Training parameters
 N_EPOCHS = 6000
-N_SAMPLES =5000
-BATCH_SIZE = 128
-N_TRIALS = 8 #Different initializations of dataset 
+N_SAMPLES =8000
+BATCH_SIZE = 256
+N_TRIALS = 16 #Different initializations of dataset 
 #lr = 1e-4
 #Define distribution
-#p_x = torch.distributions.log_normal.LogNormal(1,1)
-w = torch.distributions.Categorical(torch.tensor([0.3,0.2,0.5]))
-gs = torch.distributions.normal.Normal(torch.Tensor([-4,0,2]),torch.tensor([1,0.5,1]))
-p_x = torch.distributions.mixture_same_family.MixtureSameFamily(w,gs)
+p_x = torch.distributions.log_normal.LogNormal(1,1)
+#w = torch.distributions.Categorical(torch.tensor([0.3,0.2,0.5]))
+#gs = torch.distributions.normal.Normal(torch.Tensor([-4,0,2]),torch.tensor([1,0.5,1]))
+#p_x = torch.distributions.mixture_same_family.MixtureSameFamily(w,gs)
 # %%
 #Initialize model parameters
 #Iterate over different R^*
-RtVec = np.linspace(0.3,2.5,num=10)
+RtVec = np.linspace(0.2,2.6,num=10)
 
-r_list = Parallel(n_jobs=4)(delayed(vary_R)(RtVec) for n in range(N_TRIALS))
+r_list = Parallel(n_jobs=16)(delayed(vary_R)(RtVec) for n in range(N_TRIALS))
 
-PATH = os.getcwd() + "/data/MoG_prior_N=10_q=Ising_lrs=1_5.pt"
+PATH = os.getcwd() + "/data/LN_prior_N=12_q=Ising_lrs=1_7.pt"
 
 torch.save(r_list, PATH)
 # %%

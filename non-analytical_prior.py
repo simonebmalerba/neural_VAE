@@ -52,7 +52,7 @@ def train_Rt(enc,dec,q,x_data,opt,Rt,N_EPOCHS=500,lr_b = 0.1):
 def vary_R(RtVec,x_data):
     resume = {}
     for Rt in RtVec:
-        if Rt < 1.3:
+        if Rt < 1.7:
             lr = 1e-4
         else:
             lr=1e-3
@@ -75,11 +75,11 @@ def vary_R(RtVec,x_data):
     return resume
 #%%
 #Architecture parameters and distributions of stimuli
-N = 12
+N = 14
 M = 100
 #Training parameters.
 #PRE_EPOCHS = 100
-N_EPOCHS = 5000
+N_EPOCHS = 6000
 N_SAMPLES =8000
 lr = 1e-2
 BATCH_SIZE = 256
@@ -90,7 +90,7 @@ p = 2.61 #0.84#
 A = 2.4e6/10**(3*p) #0.06#
 density = lambda f :  A/(f0**p + f**p)
 #create bin edges for histogram
-f_bin = torch.logspace(-1.2, 1.2,steps=1001)
+f_bin = torch.logspace(-1.01, 1.6,steps=1001)
 Df = torch.diff(f_bin)
 fs = f_bin[0:-1] + Df/2
 pf = density(fs)
@@ -106,10 +106,10 @@ x_sorted,indices = x_samples.sort(dim=0)
 x_min,x_max = x_sorted[0,:].item(),x_sorted[-1,:].item()
 x_data = torch.utils.data.DataLoader(x_samples,batch_size=BATCH_SIZE)
 
-RtVec = np.linspace(0.4,2.7,num=8)
+RtVec = np.linspace(0.4,2.7,num=5)
 
 r_list = Parallel(n_jobs=8)(delayed(vary_R)(RtVec,x_data) for n in range(N_TRIALS))
 
-PATH = os.getcwd() + "/data/freq_dist_N=12_q=Ising_lrs=1_3.pt"
+PATH = os.getcwd() + "/data/freq_dist_N=14_q=Ising_lrs=1_5_highf.pt"
 torch.save(r_list, PATH)
 # %%
