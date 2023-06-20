@@ -1,8 +1,0 @@
-{
-    "python.pythonPath": "C:\\Users\\auror\\anaconda3\\python.exe",
-    "jupyter.jupyterServerType": "local",
-    "python.formatting.blackArgs": [
-        "--line-length",
-        "80"
-    ]
-}
