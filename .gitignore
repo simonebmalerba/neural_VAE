@@ -1,3 +1,5 @@
 Plots/
 data/
 *.ipynb
+.*
+__pycache__

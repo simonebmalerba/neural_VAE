@@ -12,10 +12,11 @@ from src.losses import *
 from src.useful_functions import *
 from torch.utils.data import DataLoader
 from joblib import Parallel,delayed
-
+# Same as distortion_rate.py, but for a non-analytical distribution over stimuli.
 # %%
 def train_Rt(enc,dec,q,x_data,opt,Rt,N_EPOCHS=500,lr_b = 0.1):
-    #Train parameters of VAE specified in `opt`
+    # Train parameters of VAE (enc + dec) stored in opt at a given target rate
+    # by minimizing -ELBO (D+R).
     history = { "loss" : [],
                 "distortion" : [],
                 "rate" : [],
@@ -50,7 +51,9 @@ def train_Rt(enc,dec,q,x_data,opt,Rt,N_EPOCHS=500,lr_b = 0.1):
     return history
 
 def vary_R(RtVec,x_data):
+     # Train a set of VAE for different value of the target rate in RtVec.
     resume = {}
+    # Sample data from the prior over stimuli.
     for Rt in RtVec:
         if Rt < 1.7:
             lr = 1e-4
@@ -59,9 +62,10 @@ def vary_R(RtVec,x_data):
         print(f"Rate = {Rt}||lr = {lr}")
         x_samples = fs[d.sample((N_SAMPLES,))[:,None]]
         x_data = torch.utils.data.DataLoader(x_samples,batch_size=BATCH_SIZE)
+        # Initialize encoder, decoder and prior parameters
         enc = BernoulliEncoder(N,x_min-1,x_max+1,x_sorted,w=0.7)
-        dec = MLPDecoder(N,M)     #Decoder
-        q = rate_ising(N)           #Prior
+        dec = MLPDecoder(N,M)     
+        q = rate_ising(N)          
         q.J.register_hook(lambda grad: grad.fill_diagonal_(0))
         params =   list(enc.parameters()) + list(dec.parameters())  + list(q.parameters())
         opt = torch.optim.Adam(params,lr)
@@ -74,31 +78,27 @@ def vary_R(RtVec,x_data):
         }
     return resume
 #%%
-#Architecture parameters and distributions of stimuli
+# Population parameters
 N = 12
 M = 100
-#Training parameters.
-#PRE_EPOCHS = 100
+# Training hyperparameters
 N_EPOCHS = 6000
 N_SAMPLES =8000
 lr = 1e-2
 BATCH_SIZE = 256
 N_TRIALS = 16
-#define manually pdf
+# Definition of power-law probability density function (from Ganguli&SImoncelli,2016)
 f0 = 1.52 #0#
 p = 2.61 #0.84#
 A = 2.4e6/10**(3*p) #0.06#
 density = lambda f :  A/(f0**p + f**p)
-#create bin edges for histogram
-f_bin = torch.logspace(-1.11, 1.6,steps=1001)
+f_bin = torch.logspace(-1.11, 1.6,steps=1001) # Create bin edges for histogram
 Df = torch.diff(f_bin)
 fs = f_bin[0:-1] + Df/2
 pf = density(fs)
-Z = (Df*pf).sum().item() #Normalize to obtain pdf
-#pf /= pf.sum()
-#plt.scatter(fs,20*torch.log10(pf))
-#plt.xscale("log")
+Z = (Df*pf).sum().item() # Normalize to obtain pdf
 d = torch.distributions.categorical.Categorical(probs = pf)
+# Sample data from probabiltiy distribution
 x_samples = fs[d.sample((N_SAMPLES,))[:,None]]
 x_test = fs[d.sample((40000,))[:,None]]
 x_tsorted,_ = x_test.sort(dim=0)
@@ -108,8 +108,7 @@ x_data = torch.utils.data.DataLoader(x_samples,batch_size=BATCH_SIZE)
 
 RtVec = np.linspace(0.4,2.7,num=8)
 
-r_list = Parallel(n_jobs=16)(delayed(vary_R)(RtVec,x_data) for n in range(N_TRIALS))
+r_list = Parallel(n_jobs=16,prefer='threads')(delayed(vary_R)(RtVec,x_data) for n in range(N_TRIALS))
 
 PATH = os.getcwd() + "/data/freq_dist_N=12_q=Ising_lrs=1_7_highf2_narrowinit.pt"
 torch.save(r_list, PATH)
-# %%

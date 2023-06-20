@@ -19,6 +19,7 @@ import random
 from src.encoders_decoders import *
 from src.losses import *
 #%%
+# This file contains some functions which might be useful to visualize results.
 
 #PLOTS ENCODING
 def plot_enc(enc, x):

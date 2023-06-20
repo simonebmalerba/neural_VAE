@@ -13,9 +13,13 @@ from src.losses import *
 from src.useful_functions import *
 from torch.utils.data import DataLoader
 from joblib import Parallel,delayed
+# This script contains the main training loops.
+# It saves a dictionary of N_trials models trained with different target rates, together with the training history
+# The saved models can then be analyzed.
 # %%
 def train_Rt(enc,dec,q,x_data,opt,Rt,N_EPOCHS=500,lr_b = 0.1):
-    #Train parameters of VAE specified in `opt`
+    # Train parameters of VAE (enc + dec) stored in opt at a given target rate
+    # by minimizing -ELBO (D+R).
     history = { "loss" : [],
                 "distortion" : [],
                 "rate" : [],
@@ -50,20 +54,24 @@ def train_Rt(enc,dec,q,x_data,opt,Rt,N_EPOCHS=500,lr_b = 0.1):
     return history
 
 def vary_R(RtVec):
+    # Train a set of VAE for different value of the target rate in RtVec.
     resume = {}
+    # Sample data from the prior over stimuli.
     x_samples = p_x.sample((N_SAMPLES,))[:,None]
     x_sorted,_ = x_samples.sort(dim=0)
     x_min,x_max = x_sorted[0,:].item(),x_sorted[-1,:].item()
     x_data = torch.utils.data.DataLoader(x_samples,batch_size=BATCH_SIZE)
     for Rt in RtVec:
+        #Model might become unstable for low values of the distortion
         if Rt < 1.9:
             lr = 1e-4
         else:
             lr=1e-3
         print(f"Rate = {Rt}||lr = {lr}")
+        # Initialize encoder, decoder and prior parameters
         enc = BernoulliEncoder(N,x_min-1,x_max+1,x_sorted,w=2)
-        dec = MLPDecoder(N,M)     #Decoder
-        q = rate_ising(N)           #Prior
+        dec = MLPDecoder(N,M)     
+        q = rate_ising(N)          
         q.J.register_hook(lambda grad: grad.fill_diagonal_(0))
         params =   list(enc.parameters()) + list(dec.parameters())  + list(q.parameters())
         opt = torch.optim.Adam(params,lr)
@@ -76,30 +84,21 @@ def vary_R(RtVec):
         }
     return resume
 #%%
-# Architecture parameters
-N= 12     #Number of neurons
-M = 100  #Decoder neurons (D NN)
-#Training parameters
-N_EPOCHS = 6000
+# Population parameters
+N = 12       # Number of encoding neurons
+M = 100     # DNN hidden layer size
+# Training hyperparameters
+N_EPOCHS = 1000
 N_SAMPLES =8000
 BATCH_SIZE = 256
-N_TRIALS = 16 #Different initializations of dataset 
-#lr = 1e-4
-#Define distribution
+N_TRIALS = 2 #Different initializations and data samples.
+# Stimulus prior distribution
 p_x = torch.distributions.log_normal.LogNormal(1,1)
-#w = torch.distributions.Categorical(torch.tensor([0.3,0.2,0.5]))
-#gs = torch.distributions.normal.Normal(torch.Tensor([-4,0,2]),torch.tensor([1,0.5,1]))
-#p_x = torch.distributions.mixture_same_family.MixtureSameFamily(w,gs)
-# %%
-#Initialize model parameters
-#Iterate over different R^*
+# Vector of target rates
 RtVec = np.linspace(0.2,2.6,num=10)
-
-r_list = Parallel(n_jobs=16)(delayed(vary_R)(RtVec) for n in range(N_TRIALS))
+r_list = Parallel(n_jobs=8,prefer='threads')(delayed(vary_R)(RtVec) for n in range(N_TRIALS))
 
 PATH = os.getcwd() + "/data/LN_prior_N=12_q=Ising_lrs=1_7.pt"
 
 torch.save(r_list, PATH)
-# %%
-
 # %%
