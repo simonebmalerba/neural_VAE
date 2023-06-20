@@ -1,19 +1,16 @@
-##Introduction: VAE
-Jointly Efficient Encoding and Decoding in Neural Populations.
+# Jointly Efficient Encoding and Decoding in Neural Populations.
+## Introdcution
+This repository contains the custom code associated with the manuscript titled "Jointly Efficient Encoding and Decoding in Neural Populations." (Blanco Malerba et al., 2023).
+The manuscript investigates a novel approach for efficient encoding and decoding of neural activity in populations of neurons using a Variational Autoencoder framework.
 
-This repository contains the code and data associated with the manuscript titled "Jointly Efficient Encoding and Decoding in Neural Populations." (Blanco Malerba et al., 2023).
-The manuscript investigates a novel approach for efficient encoding and decoding of neural activity in populations of neurons.
-
-
-Dependencies
+## Dependencies
 
 The code runs with python 3.9 and the following requirements:
-numpy==1.25.0
-torch==2.0.1
-scikit-learn==1.2.2
-matplotlib==3.7.1
+* numpy==1.25.0
+* torch==2.0.1
+* scikit-learn==1.2.2
 
-Brief Description
+## Brief Description
 
 The src folder contains model definitions (encoder_decoders.py) and loss functions (losses.py).
 An encoder maps a stimulus, x, to a vector of neural responses, r, a decoder maps a vector of neural responses, r, to a probabiltiy distribution over stimuli.
