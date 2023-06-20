@@ -1,5 +1,5 @@
 # Jointly Efficient Encoding and Decoding in Neural Populations.
-## Introdcution
+## Introduction
 This repository contains the custom code associated with the manuscript titled "Jointly Efficient Encoding and Decoding in Neural Populations." (Blanco Malerba et al., 2023).
 The manuscript investigates a novel approach for efficient encoding and decoding of neural activity in populations of neurons using a Variational Autoencoder framework.
 
