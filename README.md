@@ -27,8 +27,10 @@ In a Variational Autoencoder framework, the loss function is the Evidence Lower 
 Distortion functions measure the reconstruction of a stimulus (likelihood) after it has been encoded into a neural activity pattern and then decoded.
 Rate functions measure the kullback-leibler divergence between the encoding distribution and a prior distribution over neural activity patterns.
 
-The scripts distortion_rate.py and non-analytical_prior.py constitute an example of training procedure: different models for different values of the maximum rate allowed (target rate) are trained and saved, and can be succesively analyzed with custom scripts. An example of simulations result can be found in the data folder (compressed).
+The scripts distortion_rate.py and non-analytical_prior.py constitute an example of training procedure: different models for different values of the maximum rate allowed (target rate) are trained and saved, and can be succesively analyzed with custom scripts. An example of simulations result can be found in the data folder (LN_prior_N=12_q=Ising_example.zip, compressed).
 Two notebooks contains typical analyses that can be run to study the behavior of the model for different values of the target rate and a single instance of the model.
+
+The experimental results for the frequency differency limens, obtained from Moore BCJ, (1979), are present in the data folder as csv files.
 
 
 
