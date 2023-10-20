@@ -89,7 +89,7 @@ N = 12       # Number of encoding neurons
 M = 100     # DNN hidden layer size
 # Training hyperparameters
 N_EPOCHS = 1000
-N_SAMPLES =8000
+N_SAMPLES = 8000
 BATCH_SIZE = 256
 N_TRIALS = 2 #Different initializations and data samples.
 # Stimulus prior distribution

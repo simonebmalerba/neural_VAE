@@ -97,10 +97,10 @@ Df = torch.diff(f_bin)
 fs = f_bin[0:-1] + Df/2
 pf = density(fs)
 Z = (Df*pf).sum().item() # Normalize to obtain pdf
-d = torch.distributions.categorical.Categorical(probs = pf)
+d = torch.distributions.categorical.Categorical(probs = pf*Df)
 # Sample data from probabiltiy distribution
 x_samples = fs[d.sample((N_SAMPLES,))[:,None]]
-x_test = fs[d.sample((40000,))[:,None]]
+x_test = fs[d.sample((10000,))[:,None]]
 x_tsorted,_ = x_test.sort(dim=0)
 x_sorted,indices = x_samples.sort(dim=0)
 x_min,x_max = x_sorted[0,:].item(),x_sorted[-1,:].item()

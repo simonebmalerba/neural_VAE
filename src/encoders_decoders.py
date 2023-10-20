@@ -37,6 +37,21 @@ def initialize_bernoulli_params(N,x_min,x_max,xs,w=1,z=0.01):
     As = torch.nn.Parameter(torch.ones(N)[None,:])
     return cs,log_sigmas,As
 
+
+class MLP(nn.Module):
+    # Simple two-layer neural network
+    def __init__(self, input_size, hidden_size, output_size):
+        super(MLP, self).__init__()
+        self.fc = nn.Linear(input_size, hidden_size)
+        self.activation = nn.ReLU()
+        self.output = nn.Linear(hidden_size, output_size)
+
+    def forward(self, x):
+        x = self.fc(x)
+        x = self.activation(x)
+        x = self.output(x)
+        return x
+
 class CategoricalEncoder(torch.nn.Module):
     # Categorical encoder: for each stimulus, x, returns the probabilities (actually, logits)
     # of a N-dimensional categorical distribution (probability of activation of each neuron),
@@ -70,6 +85,31 @@ class BernoulliEncoder(torch.nn.Module):
         inv_sigmas = 0.5*torch.exp(-2*self.log_sigmas)
         etas1 = -(x**2)@inv_sigmas
         etas2 = + 2*x@((self.cs*inv_sigmas))
+        etas3 = - (self.cs**2)*inv_sigmas + torch.log(self.As)
+        return etas1 + etas2 + etas3
+
+    def sample(self,x,nsamples):
+        p_r_x = torch.distributions.bernoulli.Bernoulli(logits = self.forward(x))
+        r = p_r_x.sample((nsamples,)).transpose(0,1)
+        return r
+
+class BernoulliEncoderLN(torch.nn.Module):
+    # Bernoulli encoder: for each stimulus, x, returns the probabilities (actually, logits)
+    # of N Bernoulli distributions as non linear, quadratic functions of the stimulus
+    # of the type p(r_i=1|x) = f_i(x)/(1+f_i(x)) f_i(x) = A_i exp(-(g(x)-c_i)^2/2w^2)
+    # (with parameters centers, tuning widths and amplitude of tuning curves).
+    # A population response consists in a vector of activation of neurons sampled independently from the Bernoulli
+    # distributions.
+    def __init__(self,N,x_min,x_max,xs,w=1,alpha=0.):
+        super().__init__()
+        self.alpha = torch.nn.Parameter(torch.tensor(alpha))
+        self.cs, self.log_sigmas,self.As  = initialize_bernoulli_params(N,x_min,x_max,(torch.sigmoid(self.alpha)*xs + (1-torch.sigmoid(self.alpha))*torch.log(xs)).detach(),w=w)
+    def forward(self,x):
+        # x has shape [bsize_dim,x_dim], c,log_sigma,A has shape [x_dim, N]
+        f_x = torch.sigmoid(self.alpha)*x + (1-torch.sigmoid(self.alpha))*torch.log(x)
+        inv_sigmas = 0.5*torch.exp(-2*self.log_sigmas)
+        etas1 = -(f_x**2)@inv_sigmas
+        etas2 = + 2*f_x@((self.cs*inv_sigmas))
         etas3 = - (self.cs**2)*inv_sigmas + torch.log(self.As)
         return etas1 + etas2 + etas3
 

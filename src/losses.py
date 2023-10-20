@@ -109,7 +109,8 @@ def distortion_analytical_linear(x,encoder,decoder,r_all):
     #Logit r|x
     eta = encoder(x)
     bsize,N = eta.shape
-    p_r_x = torch.exp((eta@r_all) - (torch.log( 1 + torch.exp(eta))).sum(dim=1)[:,None])
+    p_r_x = torch.exp((eta@r_all) + torch.nn.functional.logsigmoid(-eta).sum(dim=1)[:,None])
+    # Obtain mean and variance of Gaussian distribution
     mu_dec,log_sigma = decoder(r_all.transpose(0,1)[:,None,:])
     sigma2_dec = torch.exp(2*log_sigma)
     inv_sigma2_dec = 1/sigma2_dec
@@ -118,6 +119,25 @@ def distortion_analytical_linear(x,encoder,decoder,r_all):
         0.5*torch.log(2*np.pi*sigma2_dec)
     D = -((p_r_x*logq_x_r).sum(dim=1)).mean()
     return D
+
+def distortion_analytical_linearLN(x,encoder,decoder,r_all):
+    # Explicitly compute E_r (limited number of neurons).
+    # Requires r_all, the vector of all possible neural responses.
+    #Logit r|x
+    eta = encoder(x)
+    bsize,N = eta.shape
+    p_r_x = torch.exp((eta@r_all) + torch.nn.functional.logsigmoid(-eta).sum(dim=1)[:,None])
+    # Obtain mean and variance of Gaussian distribution
+    mu_dec,log_sigma = decoder(r_all.transpose(0,1)[:,None,:])
+    sigma2_dec = torch.exp(2*log_sigma)
+    inv_sigma2_dec = 1/sigma2_dec
+    mp = mu_dec*inv_sigma2_dec
+    # Log likelihood of log-normal distribution
+    logq_x_r = -0.5*(torch.log(x)**2)*inv_sigma2_dec + torch.log(x)*mp - 0.5*mu_dec*mp -\
+        0.5*torch.log(2*(x**2)*np.pi*sigma2_dec)
+    D = -((p_r_x*logq_x_r).sum(dim=1)).mean()
+    return D
+
 
 # Rate. All functions return R= E_x [KL(p(r|x)/q(r))]]
 # Rate as functions.
