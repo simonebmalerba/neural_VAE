@@ -3,6 +3,7 @@ import torch
 import torch.nn.functional as F
 import numpy as np
 from sklearn import cluster
+import torch.nn as nn
 # THis file contains definitions of encoding and decoding functions.
 # %% 
 # #############################################################################
