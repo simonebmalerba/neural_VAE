@@ -4,3 +4,4 @@ papers/
 *.ipynb
 .*
 __pycache__
+core

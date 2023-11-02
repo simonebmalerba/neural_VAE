@@ -63,7 +63,7 @@ def vary_R(RtVec):
     x_data = torch.utils.data.DataLoader(x_samples,batch_size=BATCH_SIZE)
     for Rt in RtVec:
         #Model might become unstable for low values of the distortion
-        if Rt < 1.9:
+        if Rt < 1.7:
             lr = 1e-4
         else:
             lr=1e-3
@@ -89,16 +89,16 @@ N = 12       # Number of encoding neurons
 M = 100     # DNN hidden layer size
 # Training hyperparameters
 N_EPOCHS = 1000
-N_SAMPLES = 8000
-BATCH_SIZE = 256
-N_TRIALS = 2 #Different initializations and data samples.
+N_SAMPLES = 500
+BATCH_SIZE = 64
+N_TRIALS = 16 #Different initializations and data samples.
 # Stimulus prior distribution
 p_x = torch.distributions.log_normal.LogNormal(1,1)
 # Vector of target rates
 RtVec = np.linspace(0.2,2.6,num=10)
-r_list = Parallel(n_jobs=8,prefer='threads')(delayed(vary_R)(RtVec) for n in range(N_TRIALS))
+r_list = Parallel(n_jobs=-1,prefer='threads')(delayed(vary_R)(RtVec) for n in range(N_TRIALS))
 
-PATH = os.getcwd() + "/data/LN_prior_N=12_q=Ising_lrs=1_7.pt"
+PATH = os.getcwd() + "/data/LN_prior_samples=500_N=12_q=Ising_lrs=1_7.pt"
 
 torch.save(r_list, PATH)
 # %%

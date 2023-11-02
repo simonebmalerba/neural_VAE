@@ -1,4 +1,4 @@
-FROM python:3.12
+FROM python:3.11
 WORKDIR /app
 
 # Copy your requirements file into the container
