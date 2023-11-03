@@ -96,7 +96,7 @@ N_TRIALS = 16 #Different initializations and data samples.
 p_x = torch.distributions.log_normal.LogNormal(1,1)
 # Vector of target rates
 RtVec = np.linspace(0.2,2.6,num=10)
-r_list = Parallel(n_jobs=-1,prefer='threads')(delayed(vary_R)(RtVec) for n in range(N_TRIALS))
+r_list = Parallel(n_jobs=2,prefer='threads')(delayed(vary_R)(RtVec) for n in range(N_TRIALS))
 
 PATH = os.getcwd() + "/data/LN_prior_samples=500_N=12_q=Ising_lrs=1_7.pt"
 
