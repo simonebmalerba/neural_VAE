@@ -4,6 +4,7 @@ import torch
 import numpy as np
 import matplotlib.pyplot as plt
 import torch.nn.functional as F
+import sys
 import pickle
 import itertools
 import random
@@ -17,13 +18,15 @@ from joblib import Parallel,delayed
 # It saves a dictionary of N_trials models trained with different target rates, together with the training history
 # The saved models can then be analyzed.
 # %%
-def train_Rt(enc,dec,q,x_data,opt,Rt,N_EPOCHS=500,lr_b = 0.1):
+def train_Rt(enc,dec,q,x_data,x_test,opt,Rt,N_EPOCHS=500,lr_b = 0.1):
     # Train parameters of VAE (enc + dec) stored in opt at a given target rate
     # by minimizing -ELBO (D+R).
     history = { "loss" : [],
                 "distortion" : [],
                 "rate" : [],
-                "beta" : [1]   }
+                "beta" : [1] ,
+                "distortion_test" : [],
+                "rate_test" : []}
 
     for e in range(N_EPOCHS):
         lav = dav = rav = 0
@@ -43,24 +46,30 @@ def train_Rt(enc,dec,q,x_data,opt,Rt,N_EPOCHS=500,lr_b = 0.1):
         history["loss"].append(lav.item()/len(x_data))
         history["rate"].append(rav.item()/len(x_data))
         history["distortion"].append(dav.item()/len(x_data))
+        
         #Update constraint
         beta += lr_b*(history["rate"][-1]-Rt)
         beta = beta if beta>0 else 0
         history["beta"].append(beta)
+        if not e % 100:
+            # Test decoder on larger set of stimuli
+            history["distortion_test"].append(distortion_analytical_linear(x_test,enc,dec,q.r_all).mean().item())
+            history["rate_test"].append(q(enc,x_test).mean())
         print(f'Epoch: {e} ||Rate: {history["rate"][-1]}||',
             f'ELBO:{history["loss"][-1]}||',
             f'Distortion: {history["distortion"][-1]}||Beta = {history["beta"][-1]}')
     history["beta"].pop()
     return history
 
-def vary_R(RtVec):
+def vary_R(RtVec,x_test):
     # Train a set of VAE for different value of the target rate in RtVec.
     resume = {}
-    # Sample data from the prior over stimuli.
+    # Sample train and test data from the prior over stimuli.
     x_samples = p_x.sample((N_SAMPLES,))[:,None]
     x_sorted,_ = x_samples.sort(dim=0)
     x_min,x_max = x_sorted[0,:].item(),x_sorted[-1,:].item()
     x_data = torch.utils.data.DataLoader(x_samples,batch_size=BATCH_SIZE)
+    
     for Rt in RtVec:
         #Model might become unstable for low values of the distortion
         if Rt < 1.7:
@@ -75,7 +84,7 @@ def vary_R(RtVec):
         q.J.register_hook(lambda grad: grad.fill_diagonal_(0))
         params =   list(enc.parameters()) + list(dec.parameters())  + list(q.parameters())
         opt = torch.optim.Adam(params,lr)
-        history = train_Rt(enc,dec,q,x_data,opt,Rt,N_EPOCHS = N_EPOCHS,lr_b = 0.1)
+        history = train_Rt(enc,dec,q,x_data,x_test,opt,Rt,N_EPOCHS = N_EPOCHS,lr_b = 0.1)
         resume[Rt] = {'encode' :enc.state_dict(),
                     'decoder' : dec.state_dict(),
                     'q'      : q.state_dict(),
@@ -88,17 +97,19 @@ def vary_R(RtVec):
 N = 12       # Number of encoding neurons
 M = 100     # DNN hidden layer size
 # Training hyperparameters
-N_EPOCHS = 1000
-N_SAMPLES = 500
-BATCH_SIZE = 64
+N_EPOCHS = 10000
+N_SAMPLES = 100
+BATCH_SIZE = 8
 N_TRIALS = 16 #Different initializations and data samples.
 # Stimulus prior distribution
 p_x = torch.distributions.log_normal.LogNormal(1,1)
+x_test,_ = (p_x.sample((1000,))[:,None]).sort(dim=0)
+#x_test = torch.utils.data.DataLoader(x_test,batch_size=BATCH_SIZE)
 # Vector of target rates
 RtVec = np.linspace(0.2,2.6,num=10)
-r_list = Parallel(n_jobs=2,prefer='threads')(delayed(vary_R)(RtVec) for n in range(N_TRIALS))
+r_list = Parallel(n_jobs=-1)(delayed(vary_R)(RtVec,x_test) for n in range(N_TRIALS))
 
-PATH = os.getcwd() + "/data/LN_prior_samples=500_N=12_q=Ising_lrs=1_7.pt"
+PATH = os.getcwd() + "/data/LN_prior_samples=100_N=12_q=Ising_lrs=1_7.pt"
 
 torch.save(r_list, PATH)
 # %%
