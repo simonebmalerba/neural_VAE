@@ -94,7 +94,7 @@ class BernoulliEncoder(torch.nn.Module):
         r = p_r_x.sample((nsamples,)).transpose(0,1)
         return r
 
-class BernoulliEncoderLN(torch.nn.Module):
+class BernoulliEncoderGLN(torch.nn.Module):
     # Bernoulli encoder: for each stimulus, x, returns the probabilities (actually, logits)
     # of N Bernoulli distributions as non linear, quadratic functions of the stimulus
     # of the type p(r_i=1|x) = f_i(x)/(1+f_i(x)) f_i(x) = A_i exp(-(g(x)-c_i)^2/2w^2)
@@ -108,6 +108,29 @@ class BernoulliEncoderLN(torch.nn.Module):
     def forward(self,x):
         # x has shape [bsize_dim,x_dim], c,log_sigma,A has shape [x_dim, N]
         f_x = torch.sigmoid(self.alpha)*x + (1-torch.sigmoid(self.alpha))*torch.log(x)
+        inv_sigmas = 0.5*torch.exp(-2*self.log_sigmas)
+        etas1 = -(f_x**2)@inv_sigmas
+        etas2 = + 2*f_x@((self.cs*inv_sigmas))
+        etas3 = - (self.cs**2)*inv_sigmas + torch.log(self.As)
+        return etas1 + etas2 + etas3
+
+    def sample(self,x,nsamples):
+        p_r_x = torch.distributions.bernoulli.Bernoulli(logits = self.forward(x))
+        r = p_r_x.sample((nsamples,)).transpose(0,1)
+        return r
+class BernoulliEncoderLN(torch.nn.Module):
+    # Bernoulli encoder: for each stimulus, x, returns the probabilities (actually, logits)
+    # of N Bernoulli distributions as non linear, quadratic functions of the stimulus
+    # of the type p(r_i=1|x) = f_i(x)/(1+f_i(x)) f_i(x) = A_i exp(-(g(x)-c_i)^2/2w^2)
+    # (with parameters centers, tuning widths and amplitude of tuning curves).
+    # A population response consists in a vector of activation of neurons sampled independently from the Bernoulli
+    # distributions.
+    def __init__(self,N,x_min,x_max,xs,w=1,):
+        super().__init__()
+        self.cs, self.log_sigmas,self.As  = initialize_bernoulli_params(N,x_min,x_max,torch.log(xs).detach(),w=w)
+    def forward(self,x):
+        # x has shape [bsize_dim,x_dim], c,log_sigma,A has shape [x_dim, N]
+        f_x = torch.log(x)
         inv_sigmas = 0.5*torch.exp(-2*self.log_sigmas)
         etas1 = -(f_x**2)@inv_sigmas
         etas2 = + 2*f_x@((self.cs*inv_sigmas))

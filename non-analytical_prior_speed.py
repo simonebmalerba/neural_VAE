@@ -69,7 +69,7 @@ def vary_R(RtVec,x_test):
         x_samples = fs[d.sample((N_SAMPLES,))[:,None]]
         x_data = torch.utils.data.DataLoader(x_samples,batch_size=BATCH_SIZE)
         # Initialize encoder, decoder and prior parameters
-        enc = BernoulliEncoder(N,x_min-1,x_max+1,x_sorted,w=1)
+        enc = BernoulliEncoderLN(N,x_min-1,x_max+1,x_sorted,w=1)
         dec = MLPDecoder(N,M)     
         q = rate_ising(N)          
         q.J.register_hook(lambda grad: grad.fill_diagonal_(0))
@@ -88,22 +88,22 @@ def vary_R(RtVec,x_test):
 N = 12
 M = 100
 # Training hyperparameters
-N_EPOCHS = 5000
+N_EPOCHS = 4000
 N_SAMPLES =2000
 lr = 1e-2
 BATCH_SIZE = 128
 N_TRIALS = 16
 # Definition of power-law probability density function (from Ganguli&SImoncelli,2016)
-f0 = 1.52 #0#
-p = 2.61 #0.84#
-A = 2.4e6/10**(3*p) #0.06#
-density = lambda f :  A/(f0**p + f**p)
-f_bin = torch.logspace(-1.6, 1.4,steps=2001) # Create bin edges for histogram
-Df = torch.diff(f_bin)
-fs = f_bin[0:-1] + Df/2
+a = 0.05
+p = 0.93
+b = 0.11
+density = lambda s :  1/(b + a*s**p)
+s_bin = torch.logspace(-0.5, 1.4,steps=1001) # Create bin edges for histogram
+Ds = torch.diff(s_bin)
+fs = s_bin[0:-1] + Ds/2
 pf = density(fs)
-Z = (Df*pf).sum().item() # Normalize to obtain pdf
-d = torch.distributions.categorical.Categorical(probs = pf*Df)
+Z = (Ds*pf).sum().item() # Normalize to obtain pdf
+d = torch.distributions.categorical.Categorical(probs = pf*Ds)
 # Sample data from probabiltiy distribution
 x_samples = fs[d.sample((N_SAMPLES,))[:,None]]
 x_test= fs[d.sample((3000,))[:,None]]
@@ -116,5 +116,5 @@ RtVec = np.linspace(0.2,2.7,num=8)
 
 r_list = Parallel(n_jobs=-1)(delayed(vary_R)(RtVec,x_test) for n in range(N_TRIALS))
 
-PATH = os.getcwd() + "/data/freq_dist_extrange_N=12_q=Ising_lrs=1_5.pt"
+PATH = os.getcwd() + "/data/speed_dist_enc=LN_N=12_q=Ising_lrs=1_5.pt"
 torch.save(r_list, PATH)
