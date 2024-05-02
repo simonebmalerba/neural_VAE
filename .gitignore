@@ -3,5 +3,7 @@ data/
 papers/
 *.ipynb
 .*
+*.svg
+*.pdf
 __pycache__
 core
