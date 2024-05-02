@@ -21,7 +21,8 @@ The src folder contains model definitions (encoder_decoders.py) and loss functio
 An encoder maps a stimulus, x, to a vector of neural responses, r, a decoder maps a vector of neural responses, r, to a probabiltiy distribution over stimuli.
 We consider binary neurons, whose response is 0 or 1.
 The encoder consists of a population of neurons whose selectivity is parametrized with bell-shaped tuning curves, while the decoder is a generic parametric function (e.g., a deep neural network). 
-The mathematical description of the model can be found in Blanco Malerba et al., 2023
+The mathematical description of the model can be found in  Blanco Malerba, S et al., Jointly efficient encoding and decoding in neural populations
+ https://www.biorxiv.org/content/10.1101/2023.06.21.545848v1.full, 2023
 
 The parameters of the encoder and decoder are trained so as to optimize a loss function; the file losses.py allow to define the different contributions to the loss function.
 In a Variational Autoencoder framework, the loss function is the Evidence Lower Bound (ELBO), which is the sum of two contributions: distortion and rate.
